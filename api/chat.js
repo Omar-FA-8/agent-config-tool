@@ -128,9 +128,10 @@ Write a clean, structured knowledge document the user can copy and save as a PDF
 
 Always produce THREE separate text file outputs at the end:
 
---- config.txt ---
+--- [businessname]_config.txt ---
 ===========================
 AI AGENT CONFIGURATION
+[Business Name]
 ===========================
 
 ROLE DEFINITION:
@@ -159,35 +160,49 @@ SESSION CLOSURE:
 - Assignment Message: [text, max 250 chars]
 
 DATA SOURCE:
-- Upload as: [filename].pdf or [filename].docx
-- Content: See data_source.txt
+- Upload as: [businessname]_data_source.pdf or [businessname]_data_source.docx
+- Content: See [businessname]_data_source.txt
 
---- data_source.txt ---
+--- [businessname]_data_source.txt ---
 The full knowledge base document the user should copy, save as a PDF or DOCX, and upload to the Data Sources tab. Clean, professional, structured with headings and bullet points. Ready to upload as-is.
 
---- test_cases.txt ---
-A set of testing scenarios to validate the AI Agent is working correctly after setup. Include:
+--- [businessname]_test_cases.txt ---
+TESTING GUIDE — [Business Name] AI Agent
+==========================================
+Run these tests after setting up the AI Agent to verify everything works correctly.
 
-Section 1 — Knowledge Base Tests
-At least 5 questions a real customer would ask, based on the data source content. For each:
-- Send: [exact customer message to type]
-- Expected: [what the AI should answer, summarized]
-- Tests: Knowledge base is working
+SECTION 1 — KNOWLEDGE BASE TESTS
+At least 5 real customer questions based on the data source. For each:
+- Send: [exact message to type in WhatsApp]
+- Expected: [what the AI should answer]
+- Pass if: AI responds accurately from the knowledge base
 
-Section 2 — Tone & Length Tests
-3 messages that test whether the tone and answer length feel right.
+SECTION 2 — TONE & LENGTH TESTS
+3 messages that verify the tone and answer length feel right:
+- Send: [message]
+- Expected: [what a correct response looks like]
+- Pass if: response matches configured tone and length
 
-Section 3 — Escalation Tests
-One test per escalation intent enabled.
+SECTION 3 — ESCALATION TESTS
+One test per enabled escalation intent:
+- Send: [exact message that should trigger this intent]
+- Expected: [escalation fires / correct agent assigned / message shown]
+- Pass if: correct escalation triggers
 
-Section 4 — Multilingual Tests
-Arabic and English versions of the same question.
+SECTION 4 — MULTILINGUAL TESTS
+- Send: [question in Arabic] → Pass if: AI replies in Arabic
+- Send: [same question in English] → Pass if: AI replies in English
 
-Section 5 — Session Closure Test
-Steps to verify session closure fires correctly.
+SECTION 5 — SESSION CLOSURE TEST
+- Action: Send a message, then wait [timeout+1] minutes without replying
+- Expected: [conversation closes / assigned with correct message]
+- Pass if: session closure triggers correctly
 
-Section 6 — Edge Cases
-3 out-of-scope messages to test Unanswered Query handling.
+SECTION 6 — EDGE CASES
+3 out-of-scope questions the AI should NOT answer:
+- Send: [out-of-scope message]
+- Expected: Unanswered Query escalation fires or AI politely declines
+- Pass if: AI does not hallucinate an answer
 
 ---
 
