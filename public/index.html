@@ -299,9 +299,11 @@
 
     let userContent = [];
     let displayText = text;
+    let pendingFileWasSet = !!pendingFile;
 
     if (pendingFile) {
       addFileBubble(pendingFile);
+      showTyping();
       try {
         if (pendingFile.name.endsWith('.json')) {
           const jsonText = await readFileAsText(pendingFile);
@@ -329,10 +331,9 @@
     }
 
     if (text) addMessage('user', text);
-    else if (!pendingFile) return;
 
     conversationHistory.push({ role: 'user', content: userContent });
-    showTyping();
+    if (!pendingFileWasSet) showTyping();
 
     try {
       const res = await fetch('/api/chat', {
