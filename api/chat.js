@@ -128,7 +128,7 @@ Write a clean, structured knowledge document the user can copy and save as a PDF
 
 Always produce THREE separate text file outputs at the end:
 
-### FILE 1: config.txt
+--- config.txt ---
 ===========================
 AI AGENT CONFIGURATION
 ===========================
@@ -162,10 +162,10 @@ DATA SOURCE:
 - Upload as: [filename].pdf or [filename].docx
 - Content: See data_source.txt
 
-### FILE 2: data_source.txt
+--- data_source.txt ---
 The full knowledge base document the user should copy, save as a PDF or DOCX, and upload to the Data Sources tab. Clean, professional, structured with headings and bullet points. Ready to upload as-is.
 
-### FILE 3: test_cases.txt
+--- test_cases.txt ---
 A set of testing scenarios to validate the AI Agent is working correctly after setup. Include:
 
 Section 1 — Knowledge Base Tests
