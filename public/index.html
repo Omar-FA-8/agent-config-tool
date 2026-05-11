@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AI Agent Config Builder</title>
+  <title>Azeer Config</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
   <style>
@@ -107,8 +107,8 @@
 <div id="chat-screen">
   <div class="chat-header">
     <div class="chat-header-dot"></div>
-    <div class="chat-header-title">AI Agent Config Builder</div>
-    <div class="chat-header-sub">Mottasl Internal Tool</div>
+    <div class="chat-header-title">Azeer Config</div>
+    <div class="chat-header-sub">Azeer Internal Tool</div>
   </div>
 
   <div class="messages" id="messages">
@@ -222,11 +222,7 @@
       const reader = new FileReader();
       reader.onload = e => resolve(e.target.result);
       reader.onerror = reject;
-      if (file.name.endsWith('.json')) {
-        reader.readAsText(file);
-      } else {
-        reader.readAsDataURL(file);
-      }
+      reader.readAsText(file);
     });
   }
 
@@ -305,25 +301,18 @@
       addFileBubble(pendingFile);
       showTyping();
       try {
+        const fileText = await readFileAsText(pendingFile);
+        let fileContent = '';
         if (pendingFile.name.endsWith('.json')) {
-          const jsonText = await readFileAsText(pendingFile);
           let parsed;
-          try { parsed = JSON.parse(jsonText); } catch(e) { parsed = jsonText; }
-          const fileContent = 'FILE: ' + pendingFile.name + '\n\n' + (typeof parsed === 'string' ? parsed : JSON.stringify(parsed, null, 2));
-          userContent.push({ type: 'text', text: fileContent + (text ? '\n\n' + text : '') });
+          try { parsed = JSON.parse(fileText); fileContent = JSON.stringify(parsed, null, 2); } catch(e) { fileContent = fileText; }
         } else {
-          const dataUrl = await readFileAsText(pendingFile);
-          const base64 = dataUrl.split(',')[1];
-          const mediaType = pendingFile.name.endsWith('.pdf') ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-          userContent.push({
-            type: 'document',
-            source: { type: 'base64', media_type: mediaType, data: base64 }
-          });
-          if (text) userContent.push({ type: 'text', text: text });
-          else userContent.push({ type: 'text', text: 'Please analyze this file and generate an AI Agent configuration.' });
+          fileContent = fileText;
         }
+        const combined = 'File uploaded: ' + pendingFile.name + '\n\n' + fileContent + (text ? '\n\nUser note: ' + text : '\n\nPlease analyze this and generate an AI Agent configuration.');
+        userContent = combined;
       } catch(e) {
-        userContent.push({ type: 'text', text: 'Error reading file: ' + e.message });
+        userContent = 'Error reading file: ' + e.message;
       }
       removeFile();
     } else {
