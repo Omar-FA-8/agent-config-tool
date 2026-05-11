@@ -206,6 +206,10 @@ Section 6 — Edge Cases
 11. Intent Title and Trigger must always be in the same language.
 12. If the business is Arabic, write Role Definition, intent titles, and triggers in Arabic.`;
 
+  if (!process.env.ANTHROPIC_API_KEY) {
+    return res.status(500).json({ error: 'ANTHROPIC_API_KEY is not configured. Contact the admin.' });
+  }
+
   try {
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -223,9 +227,27 @@ Section 6 — Edge Cases
     });
 
     const data = await response.json();
-    if (!response.ok) return res.status(500).json({ error: data.error?.message || 'API error' });
+
+    if (!response.ok) {
+      const errorMsg = data.error?.message || 'Unknown error';
+      let friendlyMsg = '';
+      if (response.status === 401) friendlyMsg = 'Invalid API key. Check Vercel environment variables.';
+      else if (response.status === 429) friendlyMsg = 'Rate limit reached. Please wait a moment and try again.';
+      else if (response.status === 400) friendlyMsg = 'Bad request: ' + errorMsg;
+      else if (response.status === 529) friendlyMsg = 'Anthropic API is overloaded. Try again in a few seconds.';
+      else friendlyMsg = 'API error (' + response.status + '): ' + errorMsg;
+      return res.status(500).json({ error: friendlyMsg });
+    }
+
+    if (!data.content || !data.content[0]) {
+      return res.status(500).json({ error: 'Empty response received. Please try again.' });
+    }
+
     return res.status(200).json({ content: data.content[0].text });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    if (err.message && err.message.includes('fetch')) {
+      return res.status(500).json({ error: 'Cannot reach Anthropic API. Check server connectivity.' });
+    }
+    return res.status(500).json({ error: 'Server error: ' + err.message });
   }
 }
