@@ -8,7 +8,6 @@
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
     :root {
       --bg: #0e0e0f;
       --surface: #17171a;
@@ -19,302 +18,86 @@
       --muted: #6b6b80;
       --success: #34d399;
       --error: #f87171;
+      --warning: #fbbf24;
     }
-
-    body {
-      font-family: 'IBM Plex Sans', sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
+    body { font-family: 'IBM Plex Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; align-items: center; justify-content: center; }
 
     /* PASSWORD SCREEN */
-    #password-screen {
-      width: 100%;
-      max-width: 380px;
-      padding: 2rem;
-      text-align: center;
-    }
-
-    .logo {
-      font-family: 'IBM Plex Mono', monospace;
-      font-size: 11px;
-      letter-spacing: 0.2em;
-      color: var(--accent);
-      text-transform: uppercase;
-      margin-bottom: 2.5rem;
-    }
-
-    .logo span {
-      display: block;
-      font-size: 22px;
-      letter-spacing: 0.05em;
-      color: var(--text);
-      margin-top: 6px;
-      font-weight: 500;
-    }
-
-    #password-screen input {
-      width: 100%;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 12px 16px;
-      color: var(--text);
-      font-family: 'IBM Plex Mono', monospace;
-      font-size: 14px;
-      text-align: center;
-      letter-spacing: 0.15em;
-      outline: none;
-      transition: border-color 0.2s;
-      margin-bottom: 12px;
-    }
-
+    #password-screen { width: 100%; max-width: 380px; padding: 2rem; text-align: center; }
+    .logo { font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 0.2em; color: var(--accent); text-transform: uppercase; margin-bottom: 2.5rem; }
+    .logo span { display: block; font-size: 22px; letter-spacing: 0.05em; color: var(--text); margin-top: 6px; font-weight: 500; }
+    #password-screen input { width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; color: var(--text); font-family: 'IBM Plex Mono', monospace; font-size: 14px; text-align: center; letter-spacing: 0.15em; outline: none; transition: border-color 0.2s; margin-bottom: 12px; }
     #password-screen input:focus { border-color: var(--accent); }
-
-    #password-screen button {
-      width: 100%;
-      background: var(--accent);
-      border: none;
-      border-radius: 8px;
-      padding: 12px;
-      color: #fff;
-      font-family: 'IBM Plex Sans', sans-serif;
-      font-size: 14px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: opacity 0.2s;
-    }
-
+    #password-screen button { width: 100%; background: var(--accent); border: none; border-radius: 8px; padding: 12px; color: #fff; font-family: 'IBM Plex Sans', sans-serif; font-size: 14px; font-weight: 500; cursor: pointer; transition: opacity 0.2s; }
     #password-screen button:hover { opacity: 0.85; }
-
-    .pw-error {
-      font-size: 13px;
-      color: var(--error);
-      margin-top: 10px;
-      min-height: 20px;
-    }
+    .pw-error { font-size: 13px; color: var(--error); margin-top: 10px; min-height: 20px; }
 
     /* CHAT SCREEN */
-    #chat-screen {
-      display: none;
-      flex-direction: column;
-      width: 100%;
-      max-width: 760px;
-      height: 100vh;
-      padding: 0;
-    }
+    #chat-screen { display: none; flex-direction: column; width: 100%; max-width: 760px; height: 100vh; }
+    .chat-header { padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+    .chat-header-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--success); flex-shrink: 0; }
+    .chat-header-title { font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: var(--text); letter-spacing: 0.05em; }
+    .chat-header-sub { font-size: 12px; color: var(--muted); margin-left: auto; }
 
-    .chat-header {
-      padding: 1.25rem 1.5rem;
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      flex-shrink: 0;
-    }
-
-    .chat-header-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: var(--success);
-      flex-shrink: 0;
-    }
-
-    .chat-header-title {
-      font-family: 'IBM Plex Mono', monospace;
-      font-size: 13px;
-      color: var(--text);
-      letter-spacing: 0.05em;
-    }
-
-    .chat-header-sub {
-      font-size: 12px;
-      color: var(--muted);
-      margin-left: auto;
-    }
-
-    .messages {
-      flex: 1;
-      overflow-y: auto;
-      padding: 1.5rem;
-      display: flex;
-      flex-direction: column;
-      gap: 1.25rem;
-      scrollbar-width: thin;
-      scrollbar-color: var(--border) transparent;
-    }
-
-    .message {
-      display: flex;
-      gap: 12px;
-      animation: fadeIn 0.3s ease;
-    }
-
+    .messages { flex: 1; overflow-y: auto; padding: 1.5rem; display: flex; flex-direction: column; gap: 1.25rem; scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+    .message { display: flex; gap: 12px; animation: fadeIn 0.3s ease; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
-
     .message.user { flex-direction: row-reverse; }
-
-    .avatar {
-      width: 32px;
-      height: 32px;
-      border-radius: 6px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-family: 'IBM Plex Mono', monospace;
-      font-size: 11px;
-      font-weight: 500;
-      flex-shrink: 0;
-      margin-top: 2px;
-    }
-
+    .avatar { width: 32px; height: 32px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 500; flex-shrink: 0; margin-top: 2px; }
     .avatar.ai { background: var(--accent-dim); color: var(--accent); }
     .avatar.user-av { background: #1e2a1e; color: var(--success); }
+    .bubble { max-width: 82%; padding: 12px 16px; border-radius: 12px; font-size: 14px; line-height: 1.7; white-space: pre-wrap; word-break: break-word; }
+    .message.ai .bubble { background: var(--surface); border: 1px solid var(--border); border-top-left-radius: 4px; }
+    .message.user .bubble { background: var(--accent-dim); border: 1px solid var(--accent); border-top-right-radius: 4px; color: #d4d0ff; }
 
-    .bubble {
-      max-width: 82%;
-      padding: 12px 16px;
-      border-radius: 12px;
-      font-size: 14px;
-      line-height: 1.7;
-      white-space: pre-wrap;
-      word-break: break-word;
-    }
+    /* FILE BUBBLE */
+    .file-bubble { display: flex; align-items: center; gap: 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; font-size: 13px; color: var(--muted); max-width: 82%; }
+    .file-bubble .file-icon { font-size: 20px; flex-shrink: 0; }
+    .file-bubble .file-name { color: var(--text); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 200px; }
+    .file-bubble .file-size { font-size: 11px; color: var(--muted); }
 
-    .message.ai .bubble {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-top-left-radius: 4px;
-    }
-
-    .message.user .bubble {
-      background: var(--accent-dim);
-      border: 1px solid var(--accent);
-      border-top-right-radius: 4px;
-      color: #d4d0ff;
-    }
-
-    .typing {
-      display: flex;
-      gap: 5px;
-      align-items: center;
-      padding: 14px 16px;
-    }
-
-    .typing span {
-      width: 6px;
-      height: 6px;
-      background: var(--muted);
-      border-radius: 50%;
-      animation: bounce 1.2s infinite;
-    }
-
+    .typing { display: flex; gap: 5px; align-items: center; padding: 14px 16px; }
+    .typing span { width: 6px; height: 6px; background: var(--muted); border-radius: 50%; animation: bounce 1.2s infinite; }
     .typing span:nth-child(2) { animation-delay: 0.2s; }
     .typing span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes bounce { 0%, 60%, 100% { transform: translateY(0); } 30% { transform: translateY(-6px); } }
 
-    @keyframes bounce {
-      0%, 60%, 100% { transform: translateY(0); }
-      30% { transform: translateY(-6px); }
-    }
-
-    .input-area {
-      padding: 1rem 1.5rem 1.25rem;
-      border-top: 1px solid var(--border);
-      display: flex;
-      gap: 10px;
-      flex-shrink: 0;
-    }
-
-    #user-input {
-      flex: 1;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 12px 14px;
-      color: var(--text);
-      font-family: 'IBM Plex Sans', sans-serif;
-      font-size: 14px;
-      resize: none;
-      outline: none;
-      transition: border-color 0.2s;
-      max-height: 140px;
-      line-height: 1.5;
-    }
-
+    /* INPUT AREA */
+    .input-area { padding: 0.75rem 1.5rem 1.25rem; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; }
+    .file-preview { display: none; align-items: center; gap: 8px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; font-size: 13px; }
+    .file-preview.visible { display: flex; }
+    .file-preview .fp-name { color: var(--text); font-weight: 500; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .file-preview .fp-remove { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 16px; padding: 0; line-height: 1; }
+    .file-preview .fp-remove:hover { color: var(--error); }
+    .input-row { display: flex; gap: 10px; }
+    #user-input { flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; color: var(--text); font-family: 'IBM Plex Sans', sans-serif; font-size: 14px; resize: none; outline: none; transition: border-color 0.2s; max-height: 140px; line-height: 1.5; }
     #user-input:focus { border-color: var(--accent); }
     #user-input::placeholder { color: var(--muted); }
 
-    #send-btn {
-      background: var(--accent);
-      border: none;
-      border-radius: 10px;
-      width: 44px;
-      height: 44px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      transition: opacity 0.2s, transform 0.1s;
-      flex-shrink: 0;
-      align-self: flex-end;
-    }
+    .btn-upload { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: border-color 0.2s; flex-shrink: 0; align-self: flex-end; color: var(--muted); }
+    .btn-upload:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-upload svg { width: 18px; height: 18px; }
 
+    #send-btn { background: var(--accent); border: none; border-radius: 10px; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: opacity 0.2s, transform 0.1s; flex-shrink: 0; align-self: flex-end; }
     #send-btn:hover { opacity: 0.85; }
     #send-btn:active { transform: scale(0.95); }
     #send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-
     #send-btn svg { width: 18px; height: 18px; fill: #fff; }
 
-    .welcome-msg {
-      text-align: center;
-      padding: 2rem 1rem;
-      color: var(--muted);
-    }
-
-    .welcome-msg h2 {
-      font-size: 16px;
-      font-weight: 500;
-      color: var(--text);
-      margin-bottom: 8px;
-    }
-
+    .welcome-msg { text-align: center; padding: 2rem 1rem; color: var(--muted); }
+    .welcome-msg h2 { font-size: 16px; font-weight: 500; color: var(--text); margin-bottom: 8px; }
     .welcome-msg p { font-size: 13px; line-height: 1.6; }
-
-    .chips {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      justify-content: center;
-      margin-top: 16px;
-    }
-
-    .chip {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 20px;
-      padding: 7px 14px;
-      font-size: 12px;
-      color: var(--muted);
-      cursor: pointer;
-      transition: border-color 0.2s, color 0.2s;
-    }
-
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 16px; }
+    .chip { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 7px 14px; font-size: 12px; color: var(--muted); cursor: pointer; transition: border-color 0.2s, color 0.2s; }
     .chip:hover { border-color: var(--accent); color: var(--accent); }
+    .supported-files { font-size: 11px; color: var(--muted); text-align: center; margin-top: 4px; }
   </style>
 </head>
 <body>
 
 <!-- PASSWORD SCREEN -->
 <div id="password-screen">
-  <div class="logo">
-    Mottasl
-    <span>Agent Config Builder</span>
-  </div>
+  <div class="logo">Mottasl<span>Agent Config Builder</span></div>
   <input type="password" id="pw-input" placeholder="Enter access code" />
   <button onclick="checkPassword()">Enter</button>
   <div class="pw-error" id="pw-error"></div>
@@ -331,7 +114,7 @@
   <div class="messages" id="messages">
     <div class="welcome-msg">
       <h2>What would you like to configure?</h2>
-      <p>Drop a chatbot config, business description, or data source<br>and I'll generate a ready-to-use AI Agent configuration.</p>
+      <p>Drop a business description, chatbot config, or upload a file (PDF, DOCX, JSON)<br>and I'll generate a ready-to-use AI Agent configuration.</p>
       <div class="chips">
         <div class="chip" onclick="useChip(this)">Generate config from business description</div>
         <div class="chip" onclick="useChip(this)">Analyze existing chatbot config</div>
@@ -341,18 +124,33 @@
   </div>
 
   <div class="input-area">
-    <textarea id="user-input" rows="1" placeholder="Describe the business or paste a chatbot config..." onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
-    <button id="send-btn" onclick="sendMessage()">
-      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-        <path d="M2 21l21-9L2 3v7l15 2-15 2z"/>
-      </svg>
-    </button>
+    <div class="file-preview" id="file-preview">
+      <span id="fp-icon">📄</span>
+      <span class="fp-name" id="fp-name"></span>
+      <button class="fp-remove" onclick="removeFile()" title="Remove file">×</button>
+    </div>
+    <div class="input-row">
+      <label class="btn-upload" title="Upload PDF, DOCX or JSON">
+        <input type="file" id="file-input" accept=".pdf,.docx,.json" style="display:none" onchange="handleFileSelect(event)" />
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="17 8 12 3 7 8"/>
+          <line x1="12" y1="3" x2="12" y2="15"/>
+        </svg>
+      </label>
+      <textarea id="user-input" rows="1" placeholder="Describe the business or paste a chatbot config..." onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+      <button id="send-btn" onclick="sendMessage()">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg>
+      </button>
+    </div>
+    <div class="supported-files">Supported files: PDF · DOCX · JSON</div>
   </div>
 </div>
 
 <script>
   let conversationHistory = [];
   let storedPassword = '';
+  let pendingFile = null;
 
   function checkPassword() {
     const pw = document.getElementById('pw-input').value;
@@ -375,9 +173,7 @@
     });
   }
 
-  document.getElementById('pw-input').addEventListener('keydown', e => {
-    if (e.key === 'Enter') checkPassword();
-  });
+  document.getElementById('pw-input').addEventListener('keydown', e => { if (e.key === 'Enter') checkPassword(); });
 
   function useChip(el) {
     document.getElementById('user-input').value = el.textContent;
@@ -390,33 +186,84 @@
   }
 
   function handleKey(e) {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      sendMessage();
-    }
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+  }
+
+  function getFileIcon(name) {
+    if (name.endsWith('.pdf')) return '📕';
+    if (name.endsWith('.docx')) return '📘';
+    if (name.endsWith('.json')) return '📋';
+    return '📄';
+  }
+
+  function formatSize(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  }
+
+  function handleFileSelect(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    pendingFile = file;
+    document.getElementById('fp-icon').textContent = getFileIcon(file.name);
+    document.getElementById('fp-name').textContent = file.name + ' (' + formatSize(file.size) + ')';
+    document.getElementById('file-preview').classList.add('visible');
+  }
+
+  function removeFile() {
+    pendingFile = null;
+    document.getElementById('file-input').value = '';
+    document.getElementById('file-preview').classList.remove('visible');
+  }
+
+  function readFileAsText(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = e => resolve(e.target.result);
+      reader.onerror = reject;
+      if (file.name.endsWith('.json')) {
+        reader.readAsText(file);
+      } else {
+        reader.readAsDataURL(file);
+      }
+    });
   }
 
   function addMessage(role, content) {
     const messagesEl = document.getElementById('messages');
     const welcomeMsg = messagesEl.querySelector('.welcome-msg');
     if (welcomeMsg) welcomeMsg.remove();
-
     const div = document.createElement('div');
-    div.className = `message ${role}`;
-
+    div.className = 'message ' + role;
     const avatar = document.createElement('div');
-    avatar.className = `avatar ${role === 'ai' ? 'ai' : 'user-av'}`;
+    avatar.className = 'avatar ' + (role === 'ai' ? 'ai' : 'user-av');
     avatar.textContent = role === 'ai' ? 'AI' : 'AM';
-
     const bubble = document.createElement('div');
     bubble.className = 'bubble';
     bubble.textContent = content;
-
     div.appendChild(avatar);
     div.appendChild(bubble);
     messagesEl.appendChild(div);
     messagesEl.scrollTop = messagesEl.scrollHeight;
-    return bubble;
+  }
+
+  function addFileBubble(file) {
+    const messagesEl = document.getElementById('messages');
+    const welcomeMsg = messagesEl.querySelector('.welcome-msg');
+    if (welcomeMsg) welcomeMsg.remove();
+    const div = document.createElement('div');
+    div.className = 'message user';
+    const avatar = document.createElement('div');
+    avatar.className = 'avatar user-av';
+    avatar.textContent = 'AM';
+    const bubble = document.createElement('div');
+    bubble.className = 'file-bubble';
+    bubble.innerHTML = '<span class="file-icon">' + getFileIcon(file.name) + '</span><div><div class="file-name">' + file.name + '</div><div class="file-size">' + formatSize(file.size) + '</div></div>';
+    div.appendChild(avatar);
+    div.appendChild(bubble);
+    messagesEl.appendChild(div);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
   }
 
   function showTyping() {
@@ -424,15 +271,12 @@
     const div = document.createElement('div');
     div.className = 'message ai';
     div.id = 'typing-indicator';
-
     const avatar = document.createElement('div');
     avatar.className = 'avatar ai';
     avatar.textContent = 'AI';
-
     const bubble = document.createElement('div');
     bubble.className = 'bubble typing';
     bubble.innerHTML = '<span></span><span></span><span></span>';
-
     div.appendChild(avatar);
     div.appendChild(bubble);
     messagesEl.appendChild(div);
@@ -447,14 +291,47 @@
   async function sendMessage() {
     const input = document.getElementById('user-input');
     const text = input.value.trim();
-    if (!text) return;
+    if (!text && !pendingFile) return;
 
     input.value = '';
     input.style.height = 'auto';
     document.getElementById('send-btn').disabled = true;
 
-    addMessage('user', text);
-    conversationHistory.push({ role: 'user', content: text });
+    let userContent = [];
+    let displayText = text;
+
+    if (pendingFile) {
+      addFileBubble(pendingFile);
+      try {
+        if (pendingFile.name.endsWith('.json')) {
+          const jsonText = await readFileAsText(pendingFile);
+          let parsed;
+          try { parsed = JSON.parse(jsonText); } catch(e) { parsed = jsonText; }
+          const fileContent = 'FILE: ' + pendingFile.name + '\n\n' + (typeof parsed === 'string' ? parsed : JSON.stringify(parsed, null, 2));
+          userContent.push({ type: 'text', text: fileContent + (text ? '\n\n' + text : '') });
+        } else {
+          const dataUrl = await readFileAsText(pendingFile);
+          const base64 = dataUrl.split(',')[1];
+          const mediaType = pendingFile.name.endsWith('.pdf') ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+          userContent.push({
+            type: 'document',
+            source: { type: 'base64', media_type: mediaType, data: base64 }
+          });
+          if (text) userContent.push({ type: 'text', text: text });
+          else userContent.push({ type: 'text', text: 'Please analyze this file and generate an AI Agent configuration.' });
+        }
+      } catch(e) {
+        userContent.push({ type: 'text', text: 'Error reading file: ' + e.message });
+      }
+      removeFile();
+    } else {
+      userContent = text;
+    }
+
+    if (text) addMessage('user', text);
+    else if (!pendingFile) return;
+
+    conversationHistory.push({ role: 'user', content: userContent });
     showTyping();
 
     try {
@@ -463,10 +340,8 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ messages: conversationHistory, password: storedPassword })
       });
-
       const data = await res.json();
       removeTyping();
-
       if (data.error) {
         addMessage('ai', 'Error: ' + data.error);
       } else {
