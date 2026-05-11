@@ -250,16 +250,26 @@
 
   function extractFiles(content) {
     const files = [];
-    const pattern = /###\s*FILE\s*\d+:\s*(\S+\.txt)\n([\s\S]*?)(?=###\s*FILE\s*\d+:|$)/g;
-    let match;
-    while ((match = pattern.exec(content)) !== null) {
-      files.push({ name: match[1], content: match[2].trim() });
-    }
-    // Also try the === block format
-    const pattern2 = /---\s*(\S+\.txt)\s*---\n([\s\S]*?)(?=---\s*\S+\.txt\s*---|$)/g;
-    while ((match = pattern2.exec(content)) !== null) {
-      files.push({ name: match[1], content: match[2].trim() });
-    }
+    const seen = new Set();
+    // Try all common filename patterns the AI might output
+    const names = ['config.txt', 'data_source.txt', 'test_cases.txt'];
+    names.forEach(name => {
+      // Look for the filename label followed by content
+      const escaped = name.replace('.', '\\.');
+      const patterns = [
+        new RegExp('FILE\\s*\\d+:\\s*' + escaped + '\\s*\\n([\\s\\S]*?)(?=FILE\\s*\\d+:|$)', 'i'),
+        new RegExp('-{2,}\\s*' + escaped + '\\s*-{2,}\\s*\\n([\\s\\S]*?)(?=-{2,}\\s*\\w+\\.txt|-{2,}\\s*$|$)', 'i'),
+        new RegExp('###\\s*FILE\\s*\\d+:\\s*' + escaped + '\\s*\\n([\\s\\S]*?)(?=###\\s*FILE|$)', 'i'),
+      ];
+      for (const re of patterns) {
+        const m = content.match(re);
+        if (m && m[1] && m[1].trim() && !seen.has(name)) {
+          seen.add(name);
+          files.push({ name, content: m[1].trim() });
+          break;
+        }
+      }
+    });
     return files;
   }
 
