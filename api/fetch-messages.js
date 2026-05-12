@@ -109,9 +109,32 @@ export default async function handler(req, res) {
       return res.status(404).json({ error: 'No readable message text found.' });
     }
 
+    // Deduplicate and compress — remove repeated identical messages
+    const lines = formatted.split('\n');
+    const seen = new Set();
+    const deduped = [];
+    for (const line of lines) {
+      // Extract just the message text for dedup check
+      const textPart = line.replace(/^\[.*?\]\s*(Customer|Agent):\s*/, '').trim().toLowerCase();
+      if (textPart && !seen.has(textPart)) {
+        seen.add(textPart);
+        deduped.push(line);
+      }
+    }
+
+    // Limit to 2000 unique messages to stay within token limits
+    const limited = deduped.slice(0, 2000).join('\n');
+
+    // Rough token estimate: 1 token ~ 4 chars
+    const estimatedTokens = limited.length / 4;
+    const finalMessages = estimatedTokens > 100000
+      ? deduped.slice(0, Math.floor(2000 * (100000 / estimatedTokens))).join('\n')
+      : limited;
+
     return res.status(200).json({
       message_count: allMessages.length,
-      formatted_messages: formatted
+      unique_count: deduped.length,
+      formatted_messages: finalMessages
     });
 
   } catch (err) {
