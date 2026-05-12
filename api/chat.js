@@ -169,40 +169,93 @@ The full knowledge base document the user should copy, save as a PDF or DOCX, an
 --- [businessname]_test_cases.txt ---
 TESTING GUIDE — [Business Name] AI Agent
 ==========================================
-Run these tests after setting up the AI Agent to verify everything works correctly.
+Run ALL tests after setting up the AI Agent in Mottasl.
 
 SECTION 1 — KNOWLEDGE BASE TESTS
-At least 5 real customer questions based on the data source. For each:
-- Send: [exact message to type in WhatsApp]
-- Expected: [what the AI should answer]
-- Pass if: AI responds accurately from the knowledge base
+[Write exactly 5 real customer questions with full expected answers based on the data source]
+
+TEST 1
+- Send: [exact WhatsApp message]
+- Expected: [full expected AI answer]
+- Pass if: AI answers correctly from knowledge base
+
+TEST 2
+- Send: [exact WhatsApp message]
+- Expected: [full expected AI answer]
+- Pass if: AI answers correctly from knowledge base
+
+TEST 3
+- Send: [exact WhatsApp message]
+- Expected: [full expected AI answer]
+- Pass if: AI answers correctly from knowledge base
+
+TEST 4
+- Send: [exact WhatsApp message]
+- Expected: [full expected AI answer]
+- Pass if: AI answers correctly from knowledge base
+
+TEST 5
+- Send: [exact WhatsApp message]
+- Expected: [full expected AI answer]
+- Pass if: AI answers correctly from knowledge base
 
 SECTION 2 — TONE & LENGTH TESTS
-3 messages that verify the tone and answer length feel right:
-- Send: [message]
-- Expected: [what a correct response looks like]
-- Pass if: response matches configured tone and length
+[Write 3 messages that test configured tone and length]
+
+TEST 1
+- Send: [casual greeting message]
+- Expected: [AI responds in configured tone with correct length]
+- Pass if: tone feels right and answer length matches config
+
+TEST 2
+- Send: [product/service inquiry]
+- Expected: [AI responds in configured tone with correct length]
+- Pass if: tone feels right and answer length matches config
+
+TEST 3
+- Send: [complaint or negative message]
+- Expected: [AI responds in configured tone — not defensive]
+- Pass if: tone feels right and escalates if needed
 
 SECTION 3 — ESCALATION TESTS
-One test per enabled escalation intent:
-- Send: [exact message that should trigger this intent]
-- Expected: [escalation fires / correct agent assigned / message shown]
-- Pass if: correct escalation triggers
+[One test per enabled escalation intent]
+
+[For each intent: write the exact trigger message and what should happen]
 
 SECTION 4 — MULTILINGUAL TESTS
-- Send: [question in Arabic] → Pass if: AI replies in Arabic
-- Send: [same question in English] → Pass if: AI replies in English
+
+Arabic Test:
+- Send: [key question in Arabic]
+- Expected: AI replies fully in Arabic
+- Pass if: response language matches input
+
+English Test:
+- Send: [same question in English]
+- Expected: AI replies fully in English
+- Pass if: response language matches input
 
 SECTION 5 — SESSION CLOSURE TEST
-- Action: Send a message, then wait [timeout+1] minutes without replying
-- Expected: [conversation closes / assigned with correct message]
-- Pass if: session closure triggers correctly
+- Action: Send any message, then leave the conversation idle for [configured timeout + 1] minutes
+- Expected: [conversation closes OR gets assigned to agent with the configured message]
+- Pass if: session closure fires correctly
 
 SECTION 6 — EDGE CASES
-3 out-of-scope questions the AI should NOT answer:
-- Send: [out-of-scope message]
-- Expected: Unanswered Query escalation fires or AI politely declines
-- Pass if: AI does not hallucinate an answer
+[Write 3 questions completely outside the business scope]
+
+EDGE CASE 1
+- Send: [out-of-scope question]
+- Expected: Unanswered Query escalation fires OR AI politely says it cannot help
+- Pass if: AI does NOT make up an answer
+
+EDGE CASE 2
+- Send: [out-of-scope question]
+- Expected: Unanswered Query escalation fires OR AI politely says it cannot help
+- Pass if: AI does NOT make up an answer
+
+EDGE CASE 3
+- Send: [out-of-scope question]
+- Expected: Unanswered Query escalation fires OR AI politely says it cannot help
+- Pass if: AI does NOT make up an answer
 
 ---
 
@@ -219,7 +272,9 @@ SECTION 6 — EDGE CASES
 9. Keep Intent Trigger under 250 characters.
 10. Keep Session Closure assignment messages under 250 characters.
 11. Intent Title and Trigger must always be in the same language.
-12. If the business is Arabic, write Role Definition, intent titles, and triggers in Arabic.`;
+12. If the business is Arabic, write Role Definition, intent titles, and triggers in Arabic.
+13. ALWAYS generate all 3 files at the end of every response — [businessname]_config.txt, [businessname]_data_source.txt, and [businessname]_test_cases.txt. Never skip any file. Replace [businessname] with the actual business name in lowercase with underscores (e.g. p_candles, hadaya_mall).
+14. The test_cases.txt file must always contain REAL, FULLY WRITTEN test cases — not placeholders. Use the actual business data to write specific questions and expected answers.`;
 
   if (!process.env.ANTHROPIC_API_KEY) {
     return res.status(500).json({ error: 'ANTHROPIC_API_KEY is not configured. Contact the admin.' });
