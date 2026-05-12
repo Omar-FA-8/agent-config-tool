@@ -114,6 +114,20 @@
     .dl-btn:hover { border-color: var(--accent); }
     .dl-btn svg { width: 13px; height: 13px; stroke: currentColor; fill: none; flex-shrink: 0; }
 
+
+    /* BUSINESS ID MODE */
+    .input-mode-tabs { display: flex; gap: 8px; margin-bottom: 8px; }
+    .mode-tab { background: none; border: 1px solid var(--border); border-radius: 20px; padding: 5px 14px; font-size: 12px; color: var(--muted); cursor: pointer; font-family: 'IBM Plex Mono', monospace; transition: all 0.2s; }
+    .mode-tab.active { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+    .biz-id-row { display: none; gap: 8px; align-items: center; }
+    .biz-id-row.visible { display: flex; }
+    #biz-id-input { flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; color: var(--text); font-family: 'IBM Plex Mono', monospace; font-size: 13px; outline: none; transition: border-color 0.2s; letter-spacing: 0.03em; }
+    #biz-id-input:focus { border-color: var(--accent); }
+    #biz-id-input::placeholder { color: var(--muted); }
+    #fetch-btn { background: var(--accent); border: none; border-radius: 10px; padding: 12px 18px; color: #fff; font-size: 13px; font-weight: 500; cursor: pointer; white-space: nowrap; transition: opacity 0.2s; font-family: 'IBM Plex Sans', sans-serif; }
+    #fetch-btn:hover { opacity: 0.85; }
+    #fetch-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
     /* VIDEO MODAL */
     .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 1000; align-items: center; justify-content: center; }
     .modal-overlay.visible { display: flex; }
@@ -168,7 +182,17 @@
       <span class="fp-name" id="fp-name"></span>
       <button class="fp-remove" onclick="removeFile()" title="Remove file">×</button>
     </div>
-    <div class="input-row">
+    <div class="input-mode-tabs">
+      <button class="mode-tab active" id="tab-chat" onclick="switchMode('chat')">💬 Chat / File</button>
+      <button class="mode-tab" id="tab-biz" onclick="switchMode('biz')">🔍 Business ID</button>
+    </div>
+
+    <div class="biz-id-row" id="biz-id-row">
+      <input type="text" id="biz-id-input" placeholder="Enter Business ID (e.g. 2c8a9a2d-04f8-49df-a240-f4a990782c94)" />
+      <button id="fetch-btn" onclick="fetchByBusinessId()">Fetch & Generate</button>
+    </div>
+
+    <div class="input-row" id="chat-row">
       <label class="btn-upload" title="Upload PDF, DOCX or JSON">
         <input type="file" id="file-input" accept=".pdf,.docx,.json" style="display:none" onchange="handleFileSelect(event)" />
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -182,7 +206,8 @@
         <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg>
       </button>
     </div>
-    <div class="supported-files">Supported files: PDF · DOCX · JSON</div>
+    </div>
+    <div class="supported-files" id="supported-files-hint">Supported files: PDF · DOCX · JSON</div>
   </div>
 </div>
 
@@ -448,6 +473,82 @@
   function closeModal() {
     document.getElementById('video-modal').classList.remove('visible');
     document.getElementById('tutorial-video').src = '';
+  }
+
+
+  let currentMode = 'chat';
+
+  function switchMode(mode) {
+    currentMode = mode;
+    document.getElementById('tab-chat').classList.toggle('active', mode === 'chat');
+    document.getElementById('tab-biz').classList.toggle('active', mode === 'biz');
+    document.getElementById('chat-row').style.display = mode === 'chat' ? 'flex' : 'none';
+    document.getElementById('biz-id-row').classList.toggle('visible', mode === 'biz');
+    document.getElementById('supported-files-hint').style.display = mode === 'chat' ? 'block' : 'none';
+  }
+
+  async function fetchByBusinessId() {
+    const bizId = document.getElementById('biz-id-input').value.trim();
+    if (!bizId) return;
+
+    const fetchBtn = document.getElementById('fetch-btn');
+    fetchBtn.disabled = true;
+    fetchBtn.textContent = 'Fetching...';
+
+    const messagesEl = document.getElementById('messages');
+    const welcomeMsg = messagesEl.querySelector('.welcome-msg');
+    if (welcomeMsg) welcomeMsg.remove();
+
+    // Show fetching status
+    addMessage('user', 'Business ID: ' + bizId);
+    showTyping();
+
+    try {
+      const fetchRes = await fetch('/api/fetch-messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ business_id: bizId, password: storedPassword })
+      });
+
+      const fetchData = await fetchRes.json();
+
+      if (fetchData.error) {
+        removeTyping();
+        addMessage('ai', 'Error fetching messages: ' + fetchData.error);
+        fetchBtn.disabled = false;
+        fetchBtn.textContent = 'Fetch & Generate';
+        return;
+      }
+
+      // Now send to AI
+      const prompt = 'Business ID: ' + bizId + '\n\nI have fetched the last ' + fetchData.message_count + ' WhatsApp messages for this business. Please analyze these conversations and generate a complete AI Agent configuration including all 3 output files.\n\nMESSAGES:\n' + fetchData.formatted_messages;
+
+      conversationHistory.push({ role: 'user', content: prompt });
+
+      const chatRes = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: conversationHistory, password: storedPassword })
+      });
+
+      const chatData = await chatRes.json();
+      removeTyping();
+
+      if (chatData.error) {
+        addMessage('ai', 'Error: ' + chatData.error);
+      } else {
+        addMessage('ai', chatData.content);
+        conversationHistory.push({ role: 'assistant', content: chatData.content });
+      }
+
+    } catch (err) {
+      removeTyping();
+      addMessage('ai', 'Connection error: ' + err.message);
+    }
+
+    fetchBtn.disabled = false;
+    fetchBtn.textContent = 'Fetch & Generate';
+    document.getElementById('biz-id-input').value = '';
   }
 
 </script>
