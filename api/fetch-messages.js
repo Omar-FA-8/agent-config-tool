@@ -23,9 +23,6 @@ export default async function handler(req, res) {
         direction
         body
         created_at
-        contact {
-          platform_id
-        }
       }
     }
   `;
@@ -61,11 +58,10 @@ export default async function handler(req, res) {
       .reverse()
       .map(m => {
         const sender = m.direction === 'inbound' ? 'Customer' : 'Agent';
-        const phone = m.contact?.platform_id || 'unknown';
         const date = new Date(m.created_at).toLocaleDateString('en-GB');
         const body = (m.body || '').trim();
         if (!body) return null;
-        return `[${date}] ${sender} (${phone}): ${body}`;
+        return `[${date}] ${sender}: ${body}`;
       })
       .filter(Boolean)
       .join('\n');
