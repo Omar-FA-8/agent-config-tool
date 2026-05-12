@@ -11,23 +11,28 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Business ID is required' });
   }
 
-  const query = `
-    query GetMessages($business_id: uuid!) {
-      core_message(
-        where: { business_id: { _eq: $business_id } }
-        order_by: { created_at: desc }
-        limit: 5000
-      ) {
-        id
-        direction
-        body
-        created_at
-      }
-    }
-  `;
+  const HASURA_URL = 'https://graphql.mottasl.ai/v1/graphql';
+  const BATCH_SIZE = 500;
+  const TOTAL = 5000;
 
-  try {
-    const response = await fetch('https://graphql.mottasl.ai/v1/graphql', {
+  const fetchBatch = async (offset) => {
+    const query = `
+      query GetMessages($business_id: uuid!, $offset: Int!) {
+        core_message(
+          where: { business_id: { _eq: $business_id } }
+          order_by: { created_at: desc }
+          limit: ${BATCH_SIZE}
+          offset: $offset
+        ) {
+          id
+          direction
+          body
+          created_at
+        }
+      }
+    `;
+
+    const response = await fetch(HASURA_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -35,51 +40,61 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         query,
-        variables: { business_id: business_id.trim() }
+        variables: { business_id: business_id.trim(), offset }
       })
     });
 
-    const data = await response.json();
-
-    if (data.errors) {
-      return res.status(500).json({ error: 'Database error: ' + data.errors[0]?.message });
+    const text = await response.text();
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch (e) {
+      throw new Error('Hasura returned invalid response: ' + text.substring(0, 150));
     }
+    if (data.errors) throw new Error(data.errors[0]?.message);
+    return data.data?.core_message || [];
+  };
 
-    const messages = data.data?.core_message;
+  // Extract readable text from any message body format
+  function extractText(body) {
+    if (!body) return null;
+    if (typeof body === 'string') return body.trim() || null;
+    if (typeof body === 'object') {
+      // Most common: body.text.body
+      if (body.text?.body) return body.text.body;
+      // Plain text
+      if (typeof body.text === 'string') return body.text;
+      // Template messages
+      if (body.template?.components) {
+        const texts = body.template.components
+          .filter(c => c.type === 'body' && c.text)
+          .map(c => c.text);
+        if (texts.length) return texts.join(' ');
+      }
+      // Interactive
+      if (body.interactive?.body?.text) return body.interactive.body.text;
+      // Captions
+      if (body.caption) return body.caption;
+      if (body.image?.caption) return body.image.caption;
+      if (body.video?.caption) return body.video.caption;
+      if (body.document?.caption) return body.document.caption;
+    }
+    return null;
+  }
 
-    if (!messages || messages.length === 0) {
+  try {
+    // Fetch all batches in parallel
+    const offsets = Array.from({ length: TOTAL / BATCH_SIZE }, (_, i) => i * BATCH_SIZE);
+    const batches = await Promise.all(offsets.map(offset => fetchBatch(offset)));
+    const allMessages = batches.flat();
+
+    if (!allMessages.length) {
       return res.status(404).json({ error: 'No messages found for this Business ID.' });
     }
 
-    // Extract text from body — handles both string and JSON object formats
-    function extractText(body) {
-      if (!body) return null;
-      if (typeof body === 'string') return body.trim() || null;
-      if (typeof body === 'object') {
-        // Try common text fields
-        if (body.text) return body.text;
-        if (body.body) return typeof body.body === 'string' ? body.body : null;
-        // Template messages — extract text from components
-        if (body.template?.components) {
-          const texts = body.template.components
-            .filter(c => c.type === 'body' && c.text)
-            .map(c => c.text);
-          if (texts.length) return texts.join(' ');
-        }
-        // Interactive messages
-        if (body.interactive?.body?.text) return body.interactive.body.text;
-        if (body.interactive?.header?.text) return body.interactive.header.text;
-        // Caption or any nested text
-        if (body.caption) return body.caption;
-        if (body.image?.caption) return body.image.caption;
-        if (body.video?.caption) return body.video.caption;
-        if (body.document?.caption) return body.document.caption;
-      }
-      return null;
-    }
-
-    const formatted = messages
-      .reverse()
+    // Sort chronologically and format
+    const formatted = allMessages
+      .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
       .map(m => {
         const sender = m.direction === 'inbound' ? 'Customer' : 'Agent';
         const date = new Date(m.created_at).toLocaleDateString('en-GB');
@@ -91,15 +106,15 @@ export default async function handler(req, res) {
       .join('\n');
 
     if (!formatted) {
-      return res.status(404).json({ error: 'No readable message text found for this Business ID.' });
+      return res.status(404).json({ error: 'No readable message text found.' });
     }
 
     return res.status(200).json({
-      message_count: messages.length,
+      message_count: allMessages.length,
       formatted_messages: formatted
     });
 
   } catch (err) {
-    return res.status(500).json({ error: 'Failed to reach database: ' + err.message });
+    return res.status(500).json({ error: 'Failed to fetch messages: ' + err.message });
   }
 }
