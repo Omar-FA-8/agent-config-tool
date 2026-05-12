@@ -19,7 +19,6 @@ export default async function handler(req, res) {
         limit: 5000
       ) {
         id
-        business_id
         direction
         body
         created_at
@@ -43,28 +42,57 @@ export default async function handler(req, res) {
     const data = await response.json();
 
     if (data.errors) {
-      const errMsg = data.errors[0]?.message || 'Hasura query failed';
-      return res.status(500).json({ error: 'Database error: ' + errMsg });
+      return res.status(500).json({ error: 'Database error: ' + data.errors[0]?.message });
     }
 
     const messages = data.data?.core_message;
 
     if (!messages || messages.length === 0) {
-      return res.status(404).json({ error: 'No messages found for this Business ID. Please check the ID and try again.' });
+      return res.status(404).json({ error: 'No messages found for this Business ID.' });
     }
 
-    // Format messages into readable text for the AI
+    // Extract text from body — handles both string and JSON object formats
+    function extractText(body) {
+      if (!body) return null;
+      if (typeof body === 'string') return body.trim() || null;
+      if (typeof body === 'object') {
+        // Try common text fields
+        if (body.text) return body.text;
+        if (body.body) return typeof body.body === 'string' ? body.body : null;
+        // Template messages — extract text from components
+        if (body.template?.components) {
+          const texts = body.template.components
+            .filter(c => c.type === 'body' && c.text)
+            .map(c => c.text);
+          if (texts.length) return texts.join(' ');
+        }
+        // Interactive messages
+        if (body.interactive?.body?.text) return body.interactive.body.text;
+        if (body.interactive?.header?.text) return body.interactive.header.text;
+        // Caption or any nested text
+        if (body.caption) return body.caption;
+        if (body.image?.caption) return body.image.caption;
+        if (body.video?.caption) return body.video.caption;
+        if (body.document?.caption) return body.document.caption;
+      }
+      return null;
+    }
+
     const formatted = messages
       .reverse()
       .map(m => {
         const sender = m.direction === 'inbound' ? 'Customer' : 'Agent';
         const date = new Date(m.created_at).toLocaleDateString('en-GB');
-        const body = (m.body || '').trim();
-        if (!body) return null;
-        return `[${date}] ${sender}: ${body}`;
+        const text = extractText(m.body);
+        if (!text) return null;
+        return `[${date}] ${sender}: ${text}`;
       })
       .filter(Boolean)
       .join('\n');
+
+    if (!formatted) {
+      return res.status(404).json({ error: 'No readable message text found for this Business ID.' });
+    }
 
     return res.status(200).json({
       message_count: messages.length,
