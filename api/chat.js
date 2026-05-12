@@ -273,7 +273,7 @@ EDGE CASE 3
 10. Keep Session Closure assignment messages under 250 characters.
 11. Intent Title and Trigger must always be in the same language.
 12. If the business is Arabic, write Role Definition, intent titles, and triggers in Arabic.
-13. ALWAYS generate all 3 files at the end of every response — [businessname]_config.txt, [businessname]_data_source.txt, and [businessname]_test_cases.txt. Never skip any file. Replace [businessname] with the actual business name in lowercase with underscores (e.g. p_candles, hadaya_mall).
+13. ALWAYS generate all 3 files at the end of every response in this exact order: FIRST [businessname]_config.txt, SECOND [businessname]_test_cases.txt, THIRD [businessname]_data_source.txt. Never skip any file. Replace [businessname] with the actual business name in lowercase with underscores (e.g. p_candles, hadaya_mall). Keep each file concise to fit within the response limit.
 14. The test_cases.txt file must always contain REAL, FULLY WRITTEN test cases — not placeholders. Use the actual business data to write specific questions and expected answers.`;
 
   if (!process.env.ANTHROPIC_API_KEY) {
