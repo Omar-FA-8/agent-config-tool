@@ -1,5 +1,7 @@
 export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
 
   const { business_id, password } = req.body;
 
@@ -11,17 +13,103 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Business ID is required' });
   }
 
-  const HASURA_URL = 'https://graphql.mottasl.ai/v1/graphql';
-  const BATCH_SIZE = 500;
-  const TOTAL = 5000;
+  if (!process.env.HASURA_SECRET) {
+    return res.status(500).json({ error: 'HASURA_SECRET is not configured.' });
+  }
 
-  const fetchBatch = async (offset) => {
+  const HASURA_URL = 'https://graphql.mottasl.ai/v1/graphql';
+
+  /*
+    Safer defaults:
+    - Smaller batch size to avoid heavy Hasura queries
+    - Sequential fetching instead of Promise.all
+    - Lower total fetch size to avoid Vercel timeout
+    You can override these from Vercel Environment Variables.
+  */
+  const BATCH_SIZE = Number(process.env.HASURA_FETCH_BATCH_SIZE || 100);
+  const TOTAL = Number(process.env.HASURA_FETCH_TOTAL || 1000);
+  const MAX_UNIQUE_MESSAGES = Number(process.env.HASURA_MAX_UNIQUE_MESSAGES || 500);
+  const HASURA_REQUEST_TIMEOUT_MS = Number(process.env.HASURA_REQUEST_TIMEOUT_MS || 20000);
+
+  function normalizeDirection(direction) {
+    if (!direction) return '';
+    return String(direction).toLowerCase().trim();
+  }
+
+  function isUsefulMessage(msg) {
+    const body = msg.body || {};
+    const direction = normalizeDirection(msg.direction);
+
+    // Keep inbound/customer messages
+    if (direction === 'inbound' || direction === 'in') {
+      return true;
+    }
+
+    // Keep outbound agent replies only
+    if (
+      (direction === 'outbound' || direction === 'out') &&
+      body &&
+      typeof body === 'object' &&
+      body.source === 'agent'
+    ) {
+      return true;
+    }
+
+    // Drop outbound templates, broadcasts, automations, system messages, etc.
+    return false;
+  }
+
+  function extractText(body) {
+    if (!body) return null;
+
+    if (typeof body === 'string') {
+      return body.trim() || null;
+    }
+
+    if (typeof body === 'object') {
+      // Most common WhatsApp text format
+      if (body.text?.body) {
+        return String(body.text.body).trim() || null;
+      }
+
+      // Plain text
+      if (typeof body.text === 'string') {
+        return body.text.trim() || null;
+      }
+
+      // Template body text
+      if (body.template?.components && Array.isArray(body.template.components)) {
+        const texts = body.template.components
+          .filter((c) => c && c.type === 'body' && c.text)
+          .map((c) => c.text);
+
+        if (texts.length) {
+          return texts.join(' ').trim() || null;
+        }
+      }
+
+      // Interactive message body
+      if (body.interactive?.body?.text) {
+        return String(body.interactive.body.text).trim() || null;
+      }
+
+      // Captions
+      if (body.caption) return String(body.caption).trim() || null;
+      if (body.image?.caption) return String(body.image.caption).trim() || null;
+      if (body.video?.caption) return String(body.video.caption).trim() || null;
+      if (body.document?.caption) return String(body.document.caption).trim() || null;
+    }
+
+    return null;
+  }
+
+  async function fetchBatch(offset) {
     const query = `
-      query GetMessages($business_id: uuid!, $offset: Int!) {
+      query GetMessages($business_id: uuid!, $limit: Int!, $offset: Int!) {
         core_message(
           where: { business_id: { _eq: $business_id } }
           order_by: { created_at: desc }
-          limit: ${BATCH_SIZE}
+          limit: $limit
           offset: $offset
         ) {
           id
@@ -32,112 +120,157 @@ export default async function handler(req, res) {
       }
     `;
 
-    const response = await fetch(HASURA_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-hasura-admin-secret': process.env.HASURA_SECRET
-      },
-      body: JSON.stringify({
-        query,
-        variables: { business_id: business_id.trim(), offset }
-      })
-    });
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), HASURA_REQUEST_TIMEOUT_MS);
 
-    const text = await response.text();
-    let data;
     try {
-      data = JSON.parse(text);
-    } catch (e) {
-      throw new Error('Hasura returned invalid response: ' + text.substring(0, 150));
-    }
-    if (data.errors) throw new Error(data.errors[0]?.message);
-    return data.data?.core_message || [];
-  };
+      const response = await fetch(HASURA_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-hasura-admin-secret': process.env.HASURA_SECRET
+        },
+        body: JSON.stringify({
+          query,
+          variables: {
+            business_id: business_id.trim(),
+            limit: BATCH_SIZE,
+            offset
+          }
+        }),
+        signal: controller.signal
+      });
 
-  // Extract readable text from any message body format
-  function extractText(body) {
-    if (!body) return null;
-    if (typeof body === 'string') return body.trim() || null;
-    if (typeof body === 'object') {
-      // Most common: body.text.body
-      if (body.text?.body) return body.text.body;
-      // Plain text
-      if (typeof body.text === 'string') return body.text;
-      // Template messages
-      if (body.template?.components) {
-        const texts = body.template.components
-          .filter(c => c.type === 'body' && c.text)
-          .map(c => c.text);
-        if (texts.length) return texts.join(' ');
+      const text = await response.text();
+
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (e) {
+        const cleanText = text
+          .replace(/<[^>]*>/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim()
+          .substring(0, 300);
+
+        throw new Error(
+          `Hasura returned non-JSON response. HTTP ${response.status}. Response: ${cleanText || text.substring(0, 300)}`
+        );
       }
-      // Interactive
-      if (body.interactive?.body?.text) return body.interactive.body.text;
-      // Captions
-      if (body.caption) return body.caption;
-      if (body.image?.caption) return body.image.caption;
-      if (body.video?.caption) return body.video.caption;
-      if (body.document?.caption) return body.document.caption;
+
+      if (!response.ok) {
+        const errorMessage =
+          data.errors?.[0]?.message ||
+          data.error ||
+          `Hasura request failed with HTTP ${response.status}`;
+
+        throw new Error(errorMessage);
+      }
+
+      if (data.errors) {
+        throw new Error(data.errors[0]?.message || 'Unknown Hasura error');
+      }
+
+      return data.data?.core_message || [];
+    } catch (err) {
+      if (err.name === 'AbortError') {
+        throw new Error(`Hasura request timed out after ${HASURA_REQUEST_TIMEOUT_MS / 1000} seconds`);
+      }
+
+      throw err;
+    } finally {
+      clearTimeout(timeout);
     }
-    return null;
   }
 
   try {
-    // Fetch all batches in parallel
-    const offsets = Array.from({ length: TOTAL / BATCH_SIZE }, (_, i) => i * BATCH_SIZE);
-    const batches = await Promise.all(offsets.map(offset => fetchBatch(offset)));
-    const allMessages = batches.flat();
+    const rawMessages = [];
 
-    if (!allMessages.length) {
-      return res.status(404).json({ error: 'No messages found for this Business ID.' });
+    /*
+      Important:
+      This is sequential batching, not Promise.all.
+      It avoids sending many heavy Hasura queries at the same time.
+    */
+    for (let offset = 0; offset < TOTAL; offset += BATCH_SIZE) {
+      const batch = await fetchBatch(offset);
+
+      if (!batch.length) {
+        break;
+      }
+
+      rawMessages.push(...batch);
+
+      if (rawMessages.length >= TOTAL) {
+        break;
+      }
     }
 
-    // Sort chronologically and format
-    const formatted = allMessages
+    if (!rawMessages.length) {
+      return res.status(404).json({
+        error: 'No messages found for this Business ID.'
+      });
+    }
+
+    const usefulMessages = rawMessages.filter(isUsefulMessage);
+
+    if (!usefulMessages.length) {
+      return res.status(404).json({
+        error: 'Messages were found, but no useful customer/agent messages were available after filtering.'
+      });
+    }
+
+    const formatted = usefulMessages
       .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
-      .map(m => {
-        const sender = m.direction === 'inbound' ? 'Customer' : 'Agent';
+      .map((m) => {
+        const direction = normalizeDirection(m.direction);
+        const sender = direction === 'inbound' || direction === 'in' ? 'Customer' : 'Agent';
         const date = new Date(m.created_at).toLocaleDateString('en-GB');
         const text = extractText(m.body);
+
         if (!text) return null;
+
         return `[${date}] ${sender}: ${text}`;
       })
       .filter(Boolean)
       .join('\n');
 
     if (!formatted) {
-      return res.status(404).json({ error: 'No readable message text found.' });
+      return res.status(404).json({
+        error: 'No readable message text found.'
+      });
     }
 
-    // Deduplicate and compress — remove repeated identical messages
     const lines = formatted.split('\n');
     const seen = new Set();
     const deduped = [];
+
     for (const line of lines) {
-      // Extract just the message text for dedup check
-      const textPart = line.replace(/^\[.*?\]\s*(Customer|Agent):\s*/, '').trim().toLowerCase();
+      const textPart = line
+        .replace(/^\[.*?\]\s*(Customer|Agent):\s*/, '')
+        .trim()
+        .toLowerCase();
+
       if (textPart && !seen.has(textPart)) {
         seen.add(textPart);
         deduped.push(line);
       }
+
+      if (deduped.length >= MAX_UNIQUE_MESSAGES) {
+        break;
+      }
     }
 
-    // Limit to 2000 unique messages to stay within token limits
-    const limited = deduped.slice(0, 2000).join('\n');
-
-    // Rough token estimate: 1 token ~ 4 chars
-    const estimatedTokens = limited.length / 4;
-    const finalMessages = estimatedTokens > 100000
-      ? deduped.slice(0, Math.floor(2000 * (100000 / estimatedTokens))).join('\n')
-      : limited;
+    const finalMessages = deduped.join('\n');
 
     return res.status(200).json({
-      message_count: allMessages.length,
+      message_count: rawMessages.length,
+      filtered_message_count: usefulMessages.length,
       unique_count: deduped.length,
       formatted_messages: finalMessages
     });
-
   } catch (err) {
-    return res.status(500).json({ error: 'Failed to fetch messages: ' + err.message });
+    return res.status(500).json({
+      error: 'Failed to fetch messages: ' + err.message
+    });
   }
 }
