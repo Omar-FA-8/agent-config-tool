@@ -1,10 +1,16 @@
 export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
 
   const { messages, password } = req.body;
 
   if (password !== process.env.APP_PASSWORD) {
     return res.status(401).json({ error: 'Invalid password' });
+  }
+
+  if (!Array.isArray(messages)) {
+    return res.status(400).json({ error: 'Messages must be an array.' });
   }
 
   const systemPrompt = `You are an AI Agent Configuration Assistant for the Mottasl platform. Your job is to help users either:
@@ -163,9 +169,6 @@ DATA SOURCE:
 - Upload as: [businessname]_data_source.pdf or [businessname]_data_source.docx
 - Content: See [businessname]_data_source.txt
 
---- [businessname]_data_source.txt ---
-The full knowledge base document the user should copy, save as a PDF or DOCX, and upload to the Data Sources tab. Clean, professional, structured with headings and bullet points. Ready to upload as-is.
-
 --- [businessname]_test_cases.txt ---
 TESTING GUIDE — [Business Name] AI Agent
 ==========================================
@@ -276,23 +279,53 @@ EDGE CASE 3
 13. ALWAYS generate all 3 files at the end of every response in this exact order: FIRST [businessname]_config.txt, SECOND [businessname]_test_cases.txt, THIRD [businessname]_data_source.txt. Never skip any file. Replace [businessname] with the actual business name in lowercase with underscores (e.g. p_candles, hadaya_mall). Keep each file concise to fit within the response limit.
 14. The test_cases.txt file must always contain REAL, FULLY WRITTEN test cases — not placeholders. Use the actual business data to write specific questions and expected answers.`;
 
-  if (!process.env.ANTHROPIC_API_KEY) {
-    return res.status(500).json({ error: 'ANTHROPIC_API_KEY is not configured. Contact the admin.' });
+  if (!process.env.OPENAI_API_KEY) {
+    return res.status(500).json({ error: 'OPENAI_API_KEY is not configured. Contact the admin.' });
+  }
+
+  const normalizedMessages = messages
+    .filter((msg) => msg && typeof msg === 'object')
+    .map((msg) => {
+      const role = msg.role === 'assistant' ? 'assistant' : 'user';
+
+      let content = '';
+
+      if (typeof msg.content === 'string') {
+        content = msg.content;
+      } else if (Array.isArray(msg.content)) {
+        content = msg.content
+          .map((part) => {
+            if (typeof part === 'string') return part;
+            if (part?.text) return part.text;
+            return '';
+          })
+          .filter(Boolean)
+          .join('\n');
+      }
+
+      return {
+        role,
+        content
+      };
+    })
+    .filter((msg) => msg.content && msg.content.trim());
+
+  if (!normalizedMessages.length) {
+    return res.status(400).json({ error: 'No valid messages provided.' });
   }
 
   try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    const response = await fetch('https://api.openai.com/v1/responses', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': process.env.ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01'
+        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`
       },
       body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: 16000,
-        system: systemPrompt,
-        messages: messages
+        model: process.env.OPENAI_MODEL || 'gpt-4.1',
+        instructions: systemPrompt,
+        input: normalizedMessages,
+        max_output_tokens: Number(process.env.OPENAI_MAX_OUTPUT_TOKENS || 16000)
       })
     });
 
@@ -300,24 +333,42 @@ EDGE CASE 3
 
     if (!response.ok) {
       const errorMsg = data.error?.message || 'Unknown error';
+
       let friendlyMsg = '';
-      if (response.status === 401) friendlyMsg = 'Invalid API key. Check Vercel environment variables.';
-      else if (response.status === 429) friendlyMsg = 'Rate limit reached. Please wait a moment and try again.';
-      else if (response.status === 400) friendlyMsg = 'Bad request: ' + errorMsg;
-      else if (response.status === 529) friendlyMsg = 'Anthropic API is overloaded. Try again in a few seconds.';
-      else friendlyMsg = 'API error (' + response.status + '): ' + errorMsg;
+
+      if (response.status === 401) {
+        friendlyMsg = 'Invalid OpenAI API key. Check Vercel environment variables.';
+      } else if (response.status === 429) {
+        friendlyMsg = 'Rate limit or quota reached. Please wait and try again.';
+      } else if (response.status === 400) {
+        friendlyMsg = 'Bad request: ' + errorMsg;
+      } else if (response.status >= 500) {
+        friendlyMsg = 'OpenAI API is temporarily unavailable. Try again shortly.';
+      } else {
+        friendlyMsg = 'OpenAI API error (' + response.status + '): ' + errorMsg;
+      }
+
       return res.status(500).json({ error: friendlyMsg });
     }
 
-    if (!data.content || !data.content[0]) {
+    const outputText =
+      data.output_text ||
+      data.output
+        ?.flatMap((item) => item.content || [])
+        ?.map((contentItem) => contentItem.text || '')
+        ?.join('')
+        ?.trim();
+
+    if (!outputText) {
       return res.status(500).json({ error: 'Empty response received. Please try again.' });
     }
 
-    return res.status(200).json({ content: data.content[0].text });
+    return res.status(200).json({ content: outputText });
   } catch (err) {
     if (err.message && err.message.includes('fetch')) {
-      return res.status(500).json({ error: 'Cannot reach Anthropic API. Check server connectivity.' });
+      return res.status(500).json({ error: 'Cannot reach OpenAI API. Check server connectivity.' });
     }
+
     return res.status(500).json({ error: 'Server error: ' + err.message });
   }
 }
