@@ -361,7 +361,7 @@
     e.preventDefault();
     document.getElementById('card-file').classList.remove('drag-over');
     const file = e.dataTransfer.files[0];
-    if (file) attachFile(file);
+    if (file) attachFile(file, true);
   }
 
   async function cardFetchBizId() {
@@ -418,19 +418,23 @@
     if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
     return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
   }
-  function attachFile(file) {
+  function attachFile(file, autoSend = false) {
     pendingFile = file;
     document.getElementById('fp-icon').textContent = getFileIcon(file.name);
     document.getElementById('fp-name').textContent = file.name + ' (' + formatSize(file.size) + ')';
     document.getElementById('file-preview').classList.add('visible');
-    // If cards are still visible, remove them and show a hint
     removeWelcome();
-    document.getElementById('user-input').focus();
+    if (autoSend) {
+      setTimeout(() => sendMessage(), 150);
+    } else {
+      document.getElementById('user-input').focus();
+    }
   }
   function handleFileSelect(event) {
     const file = event.target.files[0];
     if (!file) return;
-    attachFile(file);
+    const autoSend = event.target.id === 'card-file-input';
+    attachFile(file, autoSend);
   }
   function removeFile() {
     pendingFile = null;
@@ -543,10 +547,25 @@
         const fileText = await readFileAsText(pendingFile);
         let fileContent = '';
         if (pendingFile.name.endsWith('.json')) {
-          try { fileContent = JSON.stringify(JSON.parse(fileText), null, 2); } catch(e) { fileContent = fileText; }
-        } else { fileContent = fileText; }
-        userContent = 'File uploaded: ' + pendingFile.name + '\n\n' + fileContent + (text ? '\n\nUser note: ' + text : '\n\nPlease analyze this and generate an AI Agent configuration.');
-      } catch(e) { userContent = 'Error reading file: ' + e.message; }
+          try {
+            const parsed = JSON.parse(fileText);
+            // Compact JSON — no pretty print — and cap at 60k chars to avoid API payload issues
+            const compact = JSON.stringify(parsed);
+            fileContent = compact.length > 60000 ? compact.slice(0, 60000) + '\n\n[...truncated for length, first 60k chars sent]' : compact;
+          } catch(e) {
+            fileContent = fileText.slice(0, 60000);
+          }
+        } else {
+          fileContent = fileText.slice(0, 60000);
+        }
+        userContent = 'File: ' + pendingFile.name + '\n\n' + fileContent + (text ? '\n\nUser note: ' + text : '\n\nPlease analyze this file and generate a complete AI Agent configuration.');
+      } catch(e) {
+        removeTyping();
+        addMessage('ai', '❌ Could not read file: ' + e.message);
+        document.getElementById('send-btn').disabled = false;
+        removeFile();
+        return;
+      }
       removeFile();
     } else {
       userContent = text;
@@ -557,18 +576,37 @@
     if (!pendingFileWasSet) showTyping();
 
     try {
-      const res = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: conversationHistory, password: storedPassword })
-      });
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 120000); // 2 min timeout
+      let res;
+      try {
+        res = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ messages: conversationHistory, password: storedPassword }),
+          signal: controller.signal
+        });
+      } finally {
+        clearTimeout(timeout);
+      }
+      if (!res.ok) {
+        const errText = await res.text().catch(() => 'Unknown error');
+        removeTyping();
+        addMessage('ai', '❌ Server error ' + res.status + ': ' + errText.slice(0, 300));
+        document.getElementById('send-btn').disabled = false;
+        return;
+      }
       const data = await res.json();
       removeTyping();
-      if (data.error) { addMessage('ai', 'Error: ' + data.error); }
+      if (data.error) { addMessage('ai', '❌ ' + data.error); }
       else { addMessage('ai', data.content); conversationHistory.push({ role: 'assistant', content: data.content }); }
     } catch (err) {
       removeTyping();
-      addMessage('ai', 'Connection error. Please try again.');
+      if (err.name === 'AbortError') {
+        addMessage('ai', '❌ Request timed out after 2 minutes. The file may be too large or the server is busy. Try again or upload a smaller file.');
+      } else {
+        addMessage('ai', '❌ Connection error: ' + err.message);
+      }
     }
     document.getElementById('send-btn').disabled = false;
     document.getElementById('user-input').focus();
