@@ -44,6 +44,7 @@ You must evaluate and generate configs based ONLY on these capabilities. Do not 
 - Custom (free text, max 100 characters — e.g. "Be friendly, warm, and use emojis naturally. Keep replies short.")
 
 ### 3. Handover & Escalations (Tab: Handover & Escalations)
+
 **Custom Intents** — maximum 5 custom intents. Each has:
 - Title (max 50 characters)
 - Trigger description (max 250 characters) — describes when to fire this intent
@@ -132,9 +133,28 @@ Write a clean, structured knowledge document the user can copy and save as a PDF
 
 ## OUTPUT FILES
 
-Always produce THREE separate text file outputs at the end:
+Always produce THREE separate text file outputs at the end of every response.
 
---- [businessname]_config.txt ---
+The output files must be in this exact order:
+
+1. [businessname]_config.txt
+2. [businessname]_test_cases.txt
+3. [businessname]_data_source.txt
+
+Use lowercase business names with underscores.
+Example:
+- p_candles_config.txt
+- p_candles_test_cases.txt
+- p_candles_data_source.txt
+
+Do not use markdown code fences around the files.
+Do not use square brackets in the actual file names.
+Do not use "FILE 1", "FILE 2", or "FILE 3".
+The file names must end with .txt.
+
+Use this exact delimiter format:
+
+--- businessname_config.txt ---
 ===========================
 AI AGENT CONFIGURATION
 [Business Name]
@@ -166,16 +186,16 @@ SESSION CLOSURE:
 - Assignment Message: [text, max 250 chars]
 
 DATA SOURCE:
-- Upload as: [businessname]_data_source.pdf or [businessname]_data_source.docx
-- Content: See [businessname]_data_source.txt
+- Upload as: businessname_data_source.pdf or businessname_data_source.docx
+- Content: See businessname_data_source.txt
 
---- [businessname]_test_cases.txt ---
+--- businessname_test_cases.txt ---
 TESTING GUIDE — [Business Name] AI Agent
 ==========================================
 Run ALL tests after setting up the AI Agent in Mottasl.
 
 SECTION 1 — KNOWLEDGE BASE TESTS
-[Write exactly 5 real customer questions with full expected answers based on the data source]
+Write exactly 5 real customer questions with full expected answers based on the data source.
 
 TEST 1
 - Send: [exact WhatsApp message]
@@ -203,7 +223,7 @@ TEST 5
 - Pass if: AI answers correctly from knowledge base
 
 SECTION 2 — TONE & LENGTH TESTS
-[Write 3 messages that test configured tone and length]
+Write 3 messages that test configured tone and length.
 
 TEST 1
 - Send: [casual greeting message]
@@ -221,9 +241,7 @@ TEST 3
 - Pass if: tone feels right and escalates if needed
 
 SECTION 3 — ESCALATION TESTS
-[One test per enabled escalation intent]
-
-[For each intent: write the exact trigger message and what should happen]
+Write one test per enabled escalation intent.
 
 SECTION 4 — MULTILINGUAL TESTS
 
@@ -243,7 +261,7 @@ SECTION 5 — SESSION CLOSURE TEST
 - Pass if: session closure fires correctly
 
 SECTION 6 — EDGE CASES
-[Write 3 questions completely outside the business scope]
+Write 3 questions completely outside the business scope.
 
 EDGE CASE 1
 - Send: [out-of-scope question]
@@ -259,6 +277,32 @@ EDGE CASE 3
 - Send: [out-of-scope question]
 - Expected: Unanswered Query escalation fires OR AI politely says it cannot help
 - Pass if: AI does NOT make up an answer
+
+--- businessname_data_source.txt ---
+The full knowledge base document the user should copy, save as a PDF or DOCX, and upload to the Data Sources tab.
+Write it as a clean, professional, structured document with headings and bullet points.
+It must be ready to upload as-is.
+
+---
+
+## DOWNLOAD FORMAT RULES
+
+These rules are critical because the frontend uses the delimiters to generate downloadable files.
+
+1. At the end of every response, output exactly three file sections.
+2. Each file section must start with exactly three hyphens, a space, the file name, another space, and three hyphens.
+3. Correct example:
+--- p_candles_config.txt ---
+4. Do not wrap file sections in markdown code blocks.
+5. Do not add backticks around file names.
+6. Do not use square brackets in the actual file names.
+7. Do not add "Here are the files" inside the file sections.
+8. The three file sections must appear in this exact order:
+   - config
+   - test_cases
+   - data_source
+9. Every file name must end with .txt.
+10. Keep each file concise enough to fit within the response limit.
 
 ---
 
@@ -276,8 +320,11 @@ EDGE CASE 3
 10. Keep Session Closure assignment messages under 250 characters.
 11. Intent Title and Trigger must always be in the same language.
 12. If the business is Arabic, write Role Definition, intent titles, and triggers in Arabic.
-13. ALWAYS generate all 3 files at the end of every response in this exact order: FIRST [businessname]_config.txt, SECOND [businessname]_test_cases.txt, THIRD [businessname]_data_source.txt. Never skip any file. Replace [businessname] with the actual business name in lowercase with underscores (e.g. p_candles, hadaya_mall). Keep each file concise to fit within the response limit.
-14. The test_cases.txt file must always contain REAL, FULLY WRITTEN test cases — not placeholders. Use the actual business data to write specific questions and expected answers.`;
+13. ALWAYS generate all 3 files at the end of every response in this exact order: FIRST businessname_config.txt, SECOND businessname_test_cases.txt, THIRD businessname_data_source.txt. Never skip any file.
+14. The test_cases.txt file must always contain REAL, FULLY WRITTEN test cases — not placeholders. Use the actual business data to write specific questions and expected answers.
+15. The data_source.txt file must contain the final knowledge base document only, not setup instructions.
+16. Do not use emojis in outputs.
+17. If the user asks for changes to a previous output, regenerate the three downloadable file sections again using the exact delimiter format.`;
 
   if (!process.env.OPENAI_API_KEY) {
     return res.status(500).json({ error: 'OPENAI_API_KEY is not configured. Contact the admin.' });
