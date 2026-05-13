@@ -367,6 +367,13 @@
   async function cardFetchBizId() {
     const bizId = document.getElementById('card-biz-input').value.trim();
     if (!bizId) return;
+
+    // Guard: password must be set
+    if (!storedPassword) {
+      addMessage('ai', '❌ Session expired — please refresh and log in again.');
+      return;
+    }
+
     const btn = document.getElementById('card-biz-btn');
     btn.disabled = true;
     btn.textContent = 'Fetching...';
