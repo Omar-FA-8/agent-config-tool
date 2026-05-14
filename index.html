@@ -230,7 +230,7 @@
 <div class="modal-overlay" id="video-modal">
   <div class="modal-box">
     <div class="modal-header">
-      <div class="modal-title">How to use Azeer Config Studio</div>
+      <div class="modal-title"><span style="color:#FFC857;">💡</span> <span style="color:#FFC857;">How to use Azeer Config Studio</span></div>
       <button class="modal-close" onclick="closeModal()">×</button>
     </div>
     <iframe id="tutorial-video" src="" allow="autoplay" allowfullscreen></iframe>
@@ -239,7 +239,7 @@
 </div>
 
 <script>
-  const VIDEO_URL = 'https://drive.google.com/file/d/1KeS5C3R-sC77OV5t7jfwGXY7mxh5ipzN/preview';
+  const VIDEO_URL = 'https://drive.google.com/file/d/1w4F3ax9a6tDP4X_9vs_hgo01hfMWSbUY/preview';
   const VIDEO_SEEN_KEY = 'azeer_config_video_seen';
 
   let conversationHistory = [];
@@ -271,9 +271,7 @@
         document.getElementById('password-screen').style.display = 'none';
         document.getElementById('chat-screen').style.display = 'flex';
         renderWelcome();
-        if (!localStorage.getItem(VIDEO_SEEN_KEY)) {
-          openModal();
-        }
+        openModal();
       }
     }).catch(() => {
       document.getElementById('pw-error').textContent = 'Connection error. Try again.';
