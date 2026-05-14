@@ -253,6 +253,9 @@
   function checkPassword() {
     const pw = document.getElementById('pw-input').value;
     if (!pw) return;
+    const btn = document.querySelector('#password-screen button');
+    btn.textContent = 'Checking...';
+    btn.disabled = true;
     storedPassword = pw;
     sessionStorage.setItem('azeer_pw', pw);
     fetch('/api/chat', {
@@ -262,17 +265,20 @@
     }).then(r => {
       if (r.status === 401) {
         document.getElementById('pw-error').textContent = 'Incorrect access code.';
+        btn.textContent = 'Enter';
+        btn.disabled = false;
       } else {
         document.getElementById('password-screen').style.display = 'none';
         document.getElementById('chat-screen').style.display = 'flex';
         renderWelcome();
-        // Show video only once
         if (!localStorage.getItem(VIDEO_SEEN_KEY)) {
           openModal();
         }
       }
     }).catch(() => {
       document.getElementById('pw-error').textContent = 'Connection error. Try again.';
+      btn.textContent = 'Enter';
+      btn.disabled = false;
     });
   }
   document.getElementById('pw-input').addEventListener('keydown', e => { if (e.key === 'Enter') checkPassword(); });
