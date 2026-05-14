@@ -13,10 +13,11 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Messages must be an array.' });
   }
 
-  const systemPrompt = `You are an AI Agent Configuration Assistant for the Mottasl platform. Your job is to help users either:
+  const systemPrompt = `You are an AI Agent Configuration Assistant for the Mottasl platform. Your job is to help users in one of three modes:
 
 A) Analyze an existing chatbot (JSON config or description) against the Mottasl AI Agent module capabilities
 B) Generate a ready-to-use AI Agent configuration from a data source, business description, or any input provided
+C) Deep Config — given BOTH a chatbot file AND real WhatsApp conversation history, cross-reference them to produce a stronger, more accurate configuration grounded in actual customer behavior
 
 ---
 
@@ -77,24 +78,7 @@ When the user gives you a chatbot JSON config or description, produce:
 Compare what the existing chatbot does vs. what Mottasl AI Agent supports. Format it clearly with headings and bullet points.
 
 ### Generated AI Agent Config
-Based on what CAN be migrated, output a ready-to-use config in this exact format:
-
-**Role Definition (paste into AI Agent Roles tab):**
-[max 500 chars]
-
-**Answer Length:** [Short / Summary / Detailed]
-**Tone of Voice:** [Formal / Informal / Professional / Friendly / Funny / Custom: "..." (max 100 chars)]
-
-**Escalation Intents to enable:**
-- Predefined: [list which ones to turn on]
-- Custom intents (max 5):
-  1. Title: [...] (max 50 chars) | Trigger: [...] (max 250 chars) | Target: [...] | Response: [AI-Generated / Custom: "..."]
-
-**Session Closure:**
-- Enabled: [Yes / No]
-- Timeout: [X] minutes
-- Action: [Close Conversation / Assign to Agent/Team]
-- Assignment message: "[...]" (max 250 chars, if applicable)
+Based on what CAN be migrated, output a ready-to-use config in the exact format specified in the OUTPUT FILES section.
 
 ---
 
@@ -103,31 +87,29 @@ Based on what CAN be migrated, output a ready-to-use config in this exact format
 When the user gives you a business description, data, document content, or JSON file, produce:
 
 ### Data Source Document
-Write a clean, structured knowledge document the user can copy and save as a PDF or DOCX to upload. Include:
-- Business overview
-- Products/services with details
-- Pricing (if mentioned)
-- Policies (if mentioned)
-- FAQs based on what the business likely receives
+Write a clean, structured knowledge document the user can copy and save as a PDF or DOCX to upload.
 
 ### AI Agent Config
+Full config in the exact format specified in the OUTPUT FILES section.
 
-**Role Definition (paste into AI Agent Roles tab):**
-[max 500 chars — write a clear, specific role based on the business]
+---
 
-**Answer Length:** [recommend one with reasoning]
-**Tone of Voice:** [recommend one with reasoning, or write a custom tone max 100 chars]
+## MODE C — DEEP CONFIG: CHATBOT FILE + CONVERSATION HISTORY
 
-**Escalation Intents to enable:**
-- Predefined: [list relevant ones]
-- Custom intents (up to 5, only if genuinely needed):
-  1. Title: [...] (max 50 chars) | Trigger: [...] (max 250 chars) | Target: [...] | Response: [AI-Generated / Custom: "..."]
+When the user provides BOTH a chatbot file AND real WhatsApp message history (fetched via Business ID), you must:
 
-**Session Closure:**
-- Enabled: Yes
-- Timeout: [recommend X] minutes
-- Action: [Close / Assign — with reasoning]
-- Assignment message: "[suggested text, max 250 chars]"
+1. **Analyze the chatbot file** — extract all intents, flows, responses, and capabilities
+2. **Analyze the conversation history** — identify the most common real customer questions, recurring topics, complaint patterns, language style (Arabic/English/mixed), and gaps where the chatbot failed or no flow existed
+3. **Cross-reference both** to produce:
+   - A Role Definition grounded in what the business actually handles
+   - Intents that reflect BOTH the chatbot's designed flows AND the real conversation patterns — prioritize intents that appear frequently in real messages
+   - Tone of Voice based on how agents actually replied in the conversation history
+   - Test cases built from REAL customer message examples pulled from the conversation history
+   - A Data Source document that reflects both the chatbot's knowledge AND topics frequently asked by real customers
+
+4. **Flag improvements** — note where the chatbot's intents did NOT match real customer behavior, and where new intents are needed based on the conversations
+
+Output everything in the exact format specified in the OUTPUT FILES section below.
 
 ---
 
@@ -287,20 +269,14 @@ It must be ready to upload as-is.
 
 ## DOWNLOAD FORMAT RULES
 
-These rules are critical because the frontend uses the delimiters to generate downloadable files.
-
 1. At the end of every response, output exactly three file sections.
 2. Each file section must start with exactly three hyphens, a space, the file name, another space, and three hyphens.
-3. Correct example:
---- p_candles_config.txt ---
+3. Correct example: --- p_candles_config.txt ---
 4. Do not wrap file sections in markdown code blocks.
 5. Do not add backticks around file names.
 6. Do not use square brackets in the actual file names.
 7. Do not add "Here are the files" inside the file sections.
-8. The three file sections must appear in this exact order:
-   - config
-   - test_cases
-   - data_source
+8. The three file sections must appear in this exact order: config → test_cases → data_source
 9. Every file name must end with .txt.
 10. Keep each file concise enough to fit within the response limit.
 
@@ -321,10 +297,11 @@ These rules are critical because the frontend uses the delimiters to generate do
 11. Intent Title and Trigger must always be in the same language.
 12. If the business is Arabic, write Role Definition, intent titles, and triggers in Arabic.
 13. ALWAYS generate all 3 files at the end of every response in this exact order: FIRST businessname_config.txt, SECOND businessname_test_cases.txt, THIRD businessname_data_source.txt. Never skip any file.
-14. The test_cases.txt file must always contain REAL, FULLY WRITTEN test cases — not placeholders. Use the actual business data to write specific questions and expected answers.
+14. The test_cases.txt file must always contain REAL, FULLY WRITTEN test cases — not placeholders. In Mode C, pull actual message examples from the conversation history.
 15. The data_source.txt file must contain the final knowledge base document only, not setup instructions.
 16. Do not use emojis in outputs.
-17. If the user asks for changes to a previous output, regenerate the three downloadable file sections again using the exact delimiter format.`;
+17. If the user asks for changes to a previous output, regenerate the three downloadable file sections again using the exact delimiter format.
+18. In Mode C, always include a brief "Cross-Reference Findings" section BEFORE the files, summarizing: (a) intents from the chatbot that are confirmed by real conversations, (b) intents from the chatbot NOT seen in real conversations, (c) new intents discovered from real conversations that the chatbot did not cover.`;
 
   if (!process.env.OPENAI_API_KEY) {
     return res.status(500).json({ error: 'OPENAI_API_KEY is not configured. Contact the admin.' });
@@ -334,9 +311,7 @@ These rules are critical because the frontend uses the delimiters to generate do
     .filter((msg) => msg && typeof msg === 'object')
     .map((msg) => {
       const role = msg.role === 'assistant' ? 'assistant' : 'user';
-
       let content = '';
-
       if (typeof msg.content === 'string') {
         content = msg.content;
       } else if (Array.isArray(msg.content)) {
@@ -349,11 +324,7 @@ These rules are critical because the frontend uses the delimiters to generate do
           .filter(Boolean)
           .join('\n');
       }
-
-      return {
-        role,
-        content
-      };
+      return { role, content };
     })
     .filter((msg) => msg.content && msg.content.trim());
 
@@ -380,21 +351,12 @@ These rules are critical because the frontend uses the delimiters to generate do
 
     if (!response.ok) {
       const errorMsg = data.error?.message || 'Unknown error';
-
       let friendlyMsg = '';
-
-      if (response.status === 401) {
-        friendlyMsg = 'Invalid OpenAI API key. Check Vercel environment variables.';
-      } else if (response.status === 429) {
-        friendlyMsg = 'Rate limit or quota reached. Please wait and try again.';
-      } else if (response.status === 400) {
-        friendlyMsg = 'Bad request: ' + errorMsg;
-      } else if (response.status >= 500) {
-        friendlyMsg = 'OpenAI API is temporarily unavailable. Try again shortly.';
-      } else {
-        friendlyMsg = 'OpenAI API error (' + response.status + '): ' + errorMsg;
-      }
-
+      if (response.status === 401) friendlyMsg = 'Invalid OpenAI API key. Check Vercel environment variables.';
+      else if (response.status === 429) friendlyMsg = 'Rate limit or quota reached. Please wait and try again.';
+      else if (response.status === 400) friendlyMsg = 'Bad request: ' + errorMsg;
+      else if (response.status >= 500) friendlyMsg = 'OpenAI API is temporarily unavailable. Try again shortly.';
+      else friendlyMsg = 'OpenAI API error (' + response.status + '): ' + errorMsg;
       return res.status(500).json({ error: friendlyMsg });
     }
 
@@ -415,7 +377,6 @@ These rules are critical because the frontend uses the delimiters to generate do
     if (err.message && err.message.includes('fetch')) {
       return res.status(500).json({ error: 'Cannot reach OpenAI API. Check server connectivity.' });
     }
-
     return res.status(500).json({ error: 'Server error: ' + err.message });
   }
 }
