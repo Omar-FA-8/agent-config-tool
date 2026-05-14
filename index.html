@@ -246,11 +246,15 @@
   let storedPassword = '';
   let pendingFile = null;
 
-  // ── PASSWORD ──────────────────────────────────────────
+  function getPassword() {
+    return storedPassword || sessionStorage.getItem('azeer_pw') || '';
+  }
+
   function checkPassword() {
     const pw = document.getElementById('pw-input').value;
     if (!pw) return;
     storedPassword = pw;
+    sessionStorage.setItem('azeer_pw', pw);
     fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -369,7 +373,7 @@
     if (!bizId) return;
 
     // Guard: password must be set
-    if (!storedPassword) {
+    if (!getPassword()) {
       addMessage('ai', '❌ Session expired — please refresh and log in again.');
       return;
     }
@@ -386,7 +390,7 @@
       const fetchRes = await fetch('/api/fetch-messages', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ business_id: bizId, password: storedPassword })
+        body: JSON.stringify({ business_id: bizId, password: getPassword() })
       });
       const fetchData = await fetchRes.json();
       if (fetchData.error) {
@@ -401,7 +405,7 @@
       const chatRes = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: conversationHistory, password: storedPassword })
+        body: JSON.stringify({ messages: conversationHistory, password: getPassword() })
       });
       const chatData = await chatRes.json();
       removeTyping();
@@ -445,8 +449,10 @@
   }
   function removeFile() {
     pendingFile = null;
-    document.getElementById('file-input').value = '';
-    document.getElementById('card-file-input').value = '';
+    const fileInput = document.getElementById('file-input');
+    if (fileInput) fileInput.value = '';
+    const cardFileInput = document.getElementById('card-file-input');
+    if (cardFileInput) cardFileInput.value = '';
     document.getElementById('file-preview').classList.remove('visible');
   }
   function readFileAsText(file) {
@@ -590,7 +596,7 @@
         res = await fetch('/api/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ messages: conversationHistory, password: storedPassword }),
+          body: JSON.stringify({ messages: conversationHistory, password: getPassword() }),
           signal: controller.signal
         });
       } finally {
