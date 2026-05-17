@@ -461,7 +461,7 @@
             <div class="merge-form" id="merge-form" onclick="event.stopPropagation()">
               <div class="merge-form-group">
                 <label>Business ID</label>
-                <input type="text" id="merge-biz-input" placeholder="e.g. 2c8a9a2d-04f8-49df-..." oninput="mergeBizId=this.value.trim()" onchange="mergeBizId=this.value.trim()" />
+                <input type="text" id="merge-biz-input" placeholder="e.g. 2c8a9a2d-04f8-49df-..." oninput="window.mergeBizId=this.value.trim()" onchange="window.mergeBizId=this.value.trim()" />
               </div>
               <div class="merge-form-group">
                 <label>Chatbot file (JSON · PDF · DOCX)</label>
@@ -501,7 +501,7 @@
 
   async function runMerge() {
     // Use stored values — DOM may be gone by click time
-    const bizId = mergeBizId || (document.getElementById('merge-biz-input') ? document.getElementById('merge-biz-input').value.trim() : '');
+    const bizId = (window.mergeBizId || '').trim() || (document.getElementById('merge-biz-input') ? document.getElementById('merge-biz-input').value.trim() : '');
     const localMergeFile = mergeFile;
 
     if (!bizId) { alert('Please enter a Business ID.'); return; }
@@ -575,6 +575,7 @@
     }
 
     mergeFile = null;
+    window.mergeBizId = '';
   }
 
 
