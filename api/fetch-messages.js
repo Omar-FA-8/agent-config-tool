@@ -68,17 +68,15 @@ export default async function handler(req, res) {
     return null;
   }
 
-  async function fetchBatch(offset) {
+  async function fetchBatch() {
     const query = `
-      query GetMessages($business_id: uuid!, $limit: Int!, $offset: Int!, $since: timestamptz!) {
+      query GetMessages($business_id: uuid!, $limit: Int!, $since: timestamptz!) {
         core_message(
           where: {
             business_id: { _eq: $business_id }
             created_at: { _gte: $since }
           }
-          order_by: { created_at: desc }
           limit: $limit
-          offset: $offset
         ) {
           id
           direction
@@ -103,7 +101,6 @@ export default async function handler(req, res) {
           variables: {
             business_id: business_id.trim(),
             limit: BATCH_SIZE,
-            offset,
             since
           }
         }),
@@ -131,33 +128,16 @@ export default async function handler(req, res) {
     }
   }
 
-  // Fetch batches — stop gracefully on timeout or empty batch
+  // Single fetch — no pagination, just get what we can within timeout
   const rawMessages = [];
   let stoppedEarly = false;
-  let batchesFetched = 0;
+  const batchesFetched = 1;
 
-  for (let i = 0; i < MAX_BATCHES; i++) {
-    const offset = i * BATCH_SIZE;
-    const result = await fetchBatch(offset);
-    batchesFetched++;
-
-    if (!result.success) {
-      // Timed out or errored — stop and use what we have
-      stoppedEarly = true;
-      break;
-    }
-
-    if (!result.messages.length) {
-      // No more messages
-      break;
-    }
-
+  const result = await fetchBatch();
+  if (result.success && result.messages.length) {
     rawMessages.push(...result.messages);
-
-    if (result.messages.length < BATCH_SIZE) {
-      // Last batch had fewer than requested — no more to fetch
-      break;
-    }
+  } else {
+    stoppedEarly = true;
   }
 
   // If we got nothing at all, return error
