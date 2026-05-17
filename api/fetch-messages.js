@@ -19,17 +19,10 @@ export default async function handler(req, res) {
 
   const HASURA_URL = 'https://graphql.mottasl.ai/v1/graphql';
 
-  /*
-    Safer defaults:
-    - Smaller batch size to avoid heavy Hasura queries
-    - Sequential fetching instead of Promise.all
-    - Lower total fetch size to avoid Vercel timeout
-    You can override these from Vercel Environment Variables.
-  */
-  const BATCH_SIZE = Number(process.env.HASURA_FETCH_BATCH_SIZE || 100);
-  const TOTAL = Number(process.env.HASURA_FETCH_TOTAL || 1000);
-  const MAX_UNIQUE_MESSAGES = Number(process.env.HASURA_MAX_UNIQUE_MESSAGES || 500);
-  const HASURA_REQUEST_TIMEOUT_MS = Number(process.env.HASURA_REQUEST_TIMEOUT_MS || 20000);
+  const BATCH_SIZE = Number(process.env.HASURA_FETCH_BATCH_SIZE || 50);
+  const TOTAL = Number(process.env.HASURA_FETCH_TOTAL || 200);
+  const MAX_UNIQUE_MESSAGES = Number(process.env.HASURA_MAX_UNIQUE_MESSAGES || 150);
+  const HASURA_REQUEST_TIMEOUT_MS = Number(process.env.HASURA_REQUEST_TIMEOUT_MS || 12000);
 
   function normalizeDirection(direction) {
     if (!direction) return '';
@@ -40,12 +33,10 @@ export default async function handler(req, res) {
     const body = msg.body || {};
     const direction = normalizeDirection(msg.direction);
 
-    // Keep inbound/customer messages
     if (direction === 'inbound' || direction === 'in') {
       return true;
     }
 
-    // Keep outbound agent replies only
     if (
       (direction === 'outbound' || direction === 'out') &&
       body &&
@@ -55,7 +46,6 @@ export default async function handler(req, res) {
       return true;
     }
 
-    // Drop outbound templates, broadcasts, automations, system messages, etc.
     return false;
   }
 
@@ -67,17 +57,14 @@ export default async function handler(req, res) {
     }
 
     if (typeof body === 'object') {
-      // Most common WhatsApp text format
       if (body.text?.body) {
         return String(body.text.body).trim() || null;
       }
 
-      // Plain text
       if (typeof body.text === 'string') {
         return body.text.trim() || null;
       }
 
-      // Template body text
       if (body.template?.components && Array.isArray(body.template.components)) {
         const texts = body.template.components
           .filter((c) => c && c.type === 'body' && c.text)
@@ -88,12 +75,10 @@ export default async function handler(req, res) {
         }
       }
 
-      // Interactive message body
       if (body.interactive?.body?.text) {
         return String(body.interactive.body.text).trim() || null;
       }
 
-      // Captions
       if (body.caption) return String(body.caption).trim() || null;
       if (body.image?.caption) return String(body.image.caption).trim() || null;
       if (body.video?.caption) return String(body.video.caption).trim() || null;
@@ -186,11 +171,6 @@ export default async function handler(req, res) {
   try {
     const rawMessages = [];
 
-    /*
-      Important:
-      This is sequential batching, not Promise.all.
-      It avoids sending many heavy Hasura queries at the same time.
-    */
     for (let offset = 0; offset < TOTAL; offset += BATCH_SIZE) {
       const batch = await fetchBatch(offset);
 
