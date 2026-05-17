@@ -488,12 +488,15 @@
 
     try {
       // Step 1: fetch messages
+      console.log('[runMerge] bizId:', JSON.stringify(bizId), '| len:', bizId.length);
+      console.log('[runMerge] password set:', !!getPassword());
       const fetchRes = await fetch('/api/fetch-messages', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ business_id: bizId, password: getPassword() })
       });
       const fetchData = await fetchRes.json();
+      console.log('[runMerge] response status:', fetchRes.status, '| body:', JSON.stringify(fetchData));
       if (fetchData.error) {
         removeTyping();
         addMessage('ai', '❌ Error fetching messages: ' + fetchData.error);
@@ -576,6 +579,12 @@
     // FIX: Capture biz ID immediately before any async/DOM work
     const bizInput = document.getElementById('card-biz-input');
     const bizId = bizInput ? bizInput.value.trim() : '';
+
+    // ── DEBUG ──────────────────────────────────────────────────────────────────
+    console.log('[cardFetchBizId] bizId:', JSON.stringify(bizId), '| len:', bizId.length);
+    console.log('[cardFetchBizId] password set:', !!getPassword());
+    // ──────────────────────────────────────────────────────────────────────────
+
     if (!bizId) return;
     if (!getPassword()) { addMessage('ai', '❌ Session expired — please refresh and log in again.'); return; }
 
@@ -587,12 +596,15 @@
     showTyping();
 
     try {
+      const _payload = { business_id: bizId, password: getPassword() };
+      console.log('[cardFetchBizId] sending payload:', JSON.stringify({ business_id: bizId, password: '[REDACTED]' }));
       const fetchRes = await fetch('/api/fetch-messages', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ business_id: bizId, password: getPassword() })
+        body: JSON.stringify(_payload)
       });
       const fetchData = await fetchRes.json();
+      console.log('[cardFetchBizId] response status:', fetchRes.status, '| body:', JSON.stringify(fetchData));
       if (fetchData.error) {
         removeTyping();
         addMessage('ai', '❌ Error fetching messages: ' + fetchData.error);
