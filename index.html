@@ -611,13 +611,31 @@
         return;
       }
       const prompt = 'Business ID: ' + bizId + '\n\nI have fetched the last ' + fetchData.message_count + ' WhatsApp messages for this business. Please analyze these conversations and generate a complete AI Agent configuration including all 3 output files.\n\nMESSAGES:\n' + fetchData.formatted_messages;
-      conversationHistory.push({ role: 'user', content: prompt });
+
+      // Always use a fresh history — never accumulate stale turns
+      conversationHistory = [{ role: 'user', content: prompt }];
+
+      const chatPayload = { messages: conversationHistory, password: getPassword() };
+      const chatPayloadStr = JSON.stringify(chatPayload);
+      console.log('[cardFetchBizId] chat payload size (bytes):', chatPayloadStr.length);
+      console.log('[cardFetchBizId] messages count:', conversationHistory.length);
+      console.log('[cardFetchBizId] password in payload:', !!chatPayload.password);
+
       const chatRes = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: conversationHistory, password: getPassword() })
+        body: chatPayloadStr
       });
-      const chatData = await chatRes.json();
+
+      // Log raw response text before parsing so we see the actual 400 error body
+      const chatRawText = await chatRes.text();
+      console.log('[cardFetchBizId] chat response status:', chatRes.status);
+      console.log('[cardFetchBizId] chat response body:', chatRawText.slice(0, 500));
+
+      let chatData;
+      try { chatData = JSON.parse(chatRawText); }
+      catch(e) { removeTyping(); addMessage('ai', '❌ Bad response from server: ' + chatRawText.slice(0, 200)); return; }
+
       removeTyping();
       if (chatData.error) { addMessage('ai', '❌ ' + chatData.error); }
       else { addMessage('ai', chatData.content); conversationHistory.push({ role: 'assistant', content: chatData.content }); }
