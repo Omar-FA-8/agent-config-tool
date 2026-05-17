@@ -328,6 +328,7 @@
 <script>
   const VIDEO_URL = 'https://www.youtube.com/embed/NYGqPBeWTB4?vq=hd1080&rel=0';
   const VIDEO_SEEN_KEY = 'azeer_config_video_seen';
+  let videoSeen = false;
 
   let conversationHistory = [];
   let storedPassword = '';
@@ -336,7 +337,7 @@
   let mergeBizId = '';
 
   function getPassword() {
-    return storedPassword || sessionStorage.getItem('azeer_pw') || '';
+    return storedPassword || '';
   }
 
   function checkPassword() {
@@ -346,7 +347,6 @@
     btn.textContent = 'Checking...';
     btn.disabled = true;
     storedPassword = pw;
-    sessionStorage.setItem('azeer_pw', pw);
     fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -360,7 +360,7 @@
         document.getElementById('password-screen').style.display = 'none';
         document.getElementById('chat-screen').style.display = 'flex';
         renderWelcome();
-        if (!localStorage.getItem(VIDEO_SEEN_KEY)) openModal();
+        if (!videoSeen) openModal();
       }
     }).catch(() => {
       document.getElementById('pw-error').textContent = 'Connection error. Try again.';
@@ -377,7 +377,7 @@
   function closeModal() {
     document.getElementById('video-modal').classList.remove('visible');
     document.getElementById('tutorial-video').src = '';
-    localStorage.setItem(VIDEO_SEEN_KEY, '1');
+    videoSeen = true;
   }
 
   // ── WELCOME CARDS ────────────────────────────────────
@@ -471,7 +471,7 @@
                   <input type="file" id="merge-file-input" accept=".pdf,.docx,.json" style="display:none" onchange="handleMergeFile(event)" />
                 </label>
               </div>
-              <button class="merge-submit-btn" id="merge-submit-btn" onclick="runMerge(document.getElementById('merge-biz-input').value)">⚡ Generate Deep Config</button>
+              <button class="merge-submit-btn" id="merge-submit-btn" onclick="startMerge()">⚡ Generate Deep Config</button>
             </div>
           </div>
         </div>
@@ -499,6 +499,13 @@
     document.getElementById('merge-file-name').textContent = file.name + ' (' + formatSize(file.size) + ')';
   }
 
+  function startMerge() {
+    const input = document.getElementById('merge-biz-input');
+    const val = input ? input.value.trim() : '';
+    console.log('startMerge called, bizId:', val, 'file:', mergeFile ? mergeFile.name : 'none');
+    runMerge(val);
+  }
+
   async function runMerge(bizIdParam) {
     const bizId = (bizIdParam || '').trim();
     const localMergeFile = mergeFile;
@@ -514,6 +521,8 @@
 
     try {
       // Step 1: fetch messages
+      console.log('DEBUG bizId:', JSON.stringify(bizId), 'len:', bizId.length);
+      console.log('DEBUG password:', getPassword() ? 'set' : 'EMPTY');
       const fetchRes = await fetch('/api/fetch-messages', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
