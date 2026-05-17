@@ -25,10 +25,10 @@ export default async function handler(req, res) {
 
   const HASURA_URL = 'https://graphql.mottasl.ai/v1/graphql';
 
-  const BATCH_SIZE      = Number(process.env.HASURA_FETCH_BATCH_SIZE    || 100);
+  const BATCH_SIZE      = Number(process.env.HASURA_FETCH_BATCH_SIZE    || 500);
   const MAX_UNIQUE      = Number(process.env.HASURA_MAX_UNIQUE_MESSAGES  || 500);
-  const TIMEOUT_MS      = Number(process.env.HASURA_BATCH_TIMEOUT_MS     || 7000);
-  const DAYS_BACK       = Number(process.env.HASURA_DAYS_BACK            || 30);
+  const TIMEOUT_MS      = Number(process.env.HASURA_BATCH_TIMEOUT_MS     || 12000);
+  const DAYS_BACK       = Number(process.env.HASURA_DAYS_BACK            || 90);
 
   const since = new Date(Date.now() - DAYS_BACK * 24 * 60 * 60 * 1000)
     .toISOString()
