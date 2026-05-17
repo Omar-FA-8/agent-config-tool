@@ -178,6 +178,7 @@
     .dl-btn { display: inline-flex; align-items: center; gap: 6px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 7px 12px; font-size: 12px; color: var(--accent); cursor: pointer; text-decoration: none; transition: border-color 0.2s; font-family: 'IBM Plex Mono', monospace; }
     .dl-btn:hover { border-color: var(--accent); }
     .dl-btn svg { width: 13px; height: 13px; stroke: currentColor; fill: none; flex-shrink: 0; }
+    .dl-btn-all { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); font-weight: 500; cursor: pointer; }
 
     /* HEADER BUTTONS */
     .how-btn { display: flex; align-items: center; gap: 6px; background: rgba(52,211,153,0.10); border: 1px solid #34d399; border-radius: 8px; padding: 6px 12px; font-size: 12px; color: #34d399; cursor: pointer; font-family: 'IBM Plex Mono', monospace; transition: all 0.2s; }
@@ -295,7 +296,7 @@
     }
   });
 
-  const VIDEO_URL = 'https://www.youtube.com/embed/NYGqPBeWTB4?vq=hd1080&rel=0';
+  const VIDEO_URL = 'https://www.youtube.com/embed/ruBn8CuqWfc?vq=hd1080&rel=0';
   let videoSeen = false;
 
   let conversationHistory = [];
@@ -834,9 +835,35 @@
     }
     return files;
   }
+  function downloadAllFiles(files) {
+    files.forEach((f, i) => {
+      setTimeout(() => {
+        const blob = new Blob([f.content], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = f.name;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      }, i * 400); // 400ms stagger so browser doesn't block multiple downloads
+    });
+  }
+
   function makeDownloadBar(files) {
     if (!files.length) return null;
     const bar = document.createElement('div'); bar.className = 'download-bar';
+
+    // ── Download All button (first) ───────────────────────────────────────────
+    if (files.length > 1) {
+      const allBtn = document.createElement('button');
+      allBtn.className = 'dl-btn dl-btn-all';
+      allBtn.innerHTML = '<svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Download All (' + files.length + ')';
+      allBtn.onclick = () => downloadAllFiles(files);
+      bar.appendChild(allBtn);
+    }
+
+    // ── Individual file buttons ───────────────────────────────────────────────
     files.forEach(f => {
       const blob = new Blob([f.content], { type: 'text/plain' });
       const url = URL.createObjectURL(blob);
