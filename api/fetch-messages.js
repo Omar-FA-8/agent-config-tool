@@ -29,7 +29,7 @@ export default async function handler(req, res) {
 
   // Date filter — only last N days to reduce scan size
   const DAYS_BACK = Number(process.env.HASURA_DAYS_BACK || 30);
-  const since = new Date(Date.now() - DAYS_BACK * 24 * 60 * 60 * 1000).toISOString();
+  const since = new Date(Date.now() - DAYS_BACK * 24 * 60 * 60 * 1000).toISOString().replace("Z", "");
 
   function normalizeDirection(direction) {
     if (!direction) return '';
@@ -70,7 +70,7 @@ export default async function handler(req, res) {
 
   async function fetchBatch() {
     const query = `
-      query GetMessages($business_id: uuid!, $limit: Int!, $since: timestamptz!) {
+      query GetMessages($business_id: uuid!, $limit: Int!, $since: timestamp!) {
         core_message(
           where: {
             business_id: { _eq: $business_id }
