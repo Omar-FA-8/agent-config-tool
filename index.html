@@ -499,18 +499,21 @@
   }
 
   async function runMerge() {
+    // Read values BEFORE removeWelcome() destroys the DOM elements
     const bizId = document.getElementById('merge-biz-input').value.trim();
+    const localMergeFile = mergeFile;
+
     if (!bizId) { alert('Please enter a Business ID.'); return; }
-    if (!mergeFile) { alert('Please select a chatbot file.'); return; }
+    if (!localMergeFile) { alert('Please select a chatbot file.'); return; }
     if (!getPassword()) { addMessage('ai', '❌ Session expired — please refresh and log in again.'); return; }
 
-    const btn = document.getElementById('merge-submit-btn');
-    btn.disabled = true;
-    btn.textContent = 'Fetching messages…';
-
+    // Now safe to destroy the welcome DOM
     removeWelcome();
-    addMessage('user', '⚡ Deep Config: Business ID ' + bizId + ' + ' + mergeFile.name);
+    addMessage('user', '⚡ Deep Config: Business ID ' + bizId + ' + ' + localMergeFile.name);
     showTyping();
+
+    // btn no longer in DOM after removeWelcome — use a local status tracker
+    let btnEl = null;
 
     try {
       // Step 1: fetch messages
@@ -523,7 +526,6 @@
       if (fetchData.error) {
         removeTyping();
         addMessage('ai', '❌ Error fetching messages: ' + fetchData.error);
-        btn.disabled = false; btn.textContent = '⚡ Generate Deep Config';
         return;
       }
 
@@ -532,8 +534,8 @@
       // Step 2: read file
       let fileContent = '';
       try {
-        const fileText = await readFileAsText(mergeFile);
-        if (mergeFile.name.endsWith('.json')) {
+        const fileText = await readFileAsText(localMergeFile);
+        if (localMergeFile.name.endsWith('.json')) {
           try {
             const parsed = JSON.parse(fileText);
             const compact = JSON.stringify(parsed);
@@ -545,17 +547,16 @@
       } catch(e) {
         removeTyping();
         addMessage('ai', '❌ Could not read file: ' + e.message);
-        btn.disabled = false; btn.textContent = '⚡ Generate Deep Config';
         return;
       }
 
-      btn.textContent = 'Generating config…';
+
 
       // Step 3: build merged prompt
       const prompt =
         'MODE C — DEEP CONFIG: Chatbot File + Conversation History\n\n' +
         'Business ID: ' + bizId + '\n\n' +
-        '--- CHATBOT FILE: ' + mergeFile.name + ' ---\n' + fileContent + '\n\n' +
+        '--- CHATBOT FILE: ' + localMergeFile.name + ' ---\n' + fileContent + '\n\n' +
         '--- WHATSAPP CONVERSATION HISTORY (' + fetchData.unique_count + ' unique messages from ' + fetchData.message_count + ' total) ---\n' +
         fetchData.formatted_messages + '\n\n' +
         'Using BOTH the chatbot file AND the real conversation history above, generate a complete AI Agent configuration. ' +
@@ -579,7 +580,6 @@
       addMessage('ai', '❌ Error: ' + err.message);
     }
 
-    btn.disabled = false; btn.textContent = '⚡ Generate Deep Config';
     mergeFile = null;
   }
 
