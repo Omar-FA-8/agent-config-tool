@@ -471,7 +471,7 @@
                   <input type="file" id="merge-file-input" accept=".pdf,.docx,.json" style="display:none" onchange="handleMergeFile(event)" />
                 </label>
               </div>
-              <button class="merge-submit-btn" id="merge-submit-btn" onclick="runMerge()">⚡ Generate Deep Config</button>
+              <button class="merge-submit-btn" id="merge-submit-btn" onclick="runMerge(document.getElementById('merge-biz-input').value)">⚡ Generate Deep Config</button>
             </div>
           </div>
         </div>
@@ -499,9 +499,8 @@
     document.getElementById('merge-file-name').textContent = file.name + ' (' + formatSize(file.size) + ')';
   }
 
-  async function runMerge() {
-    // Use stored values — DOM may be gone by click time
-    const bizId = (window.mergeBizId || '').trim() || (document.getElementById('merge-biz-input') ? document.getElementById('merge-biz-input').value.trim() : '');
+  async function runMerge(bizIdParam) {
+    const bizId = (bizIdParam || '').trim();
     const localMergeFile = mergeFile;
 
     if (!bizId) { alert('Please enter a Business ID.'); return; }
