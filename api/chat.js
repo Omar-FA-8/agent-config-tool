@@ -265,6 +265,12 @@ The full knowledge base document the user should copy, save as a PDF or DOCX, an
 Write it as a clean, professional, structured document with headings and bullet points.
 It must be ready to upload as-is.
 
+CRITICAL DATA SOURCE RULES:
+- The data source must contain ONLY factual business knowledge: what the business sells, product details, pricing, policies, shipping, FAQs, and general information customers ask about.
+- NEVER include anything related to escalation, handover, human agents, complaint routing, refund handling procedures, or intent triggers in the data source. Those belong exclusively in the Handover & Escalations config tab.
+- If escalation topics appear in customer conversations (e.g. refund requests, complaints), document the PRODUCT or POLICY facts around them (e.g. return policy, refund eligibility rules) — but do NOT write escalation instructions or routing logic.
+- The data source is what the AI reads to ANSWER questions. The escalation config is what tells the AI when to STOP answering and hand over. Keep them completely separate.
+
 ---
 
 ## DOWNLOAD FORMAT RULES
@@ -301,7 +307,9 @@ It must be ready to upload as-is.
 15. The data_source.txt file must contain the final knowledge base document only, not setup instructions.
 16. Do not use emojis in outputs.
 17. If the user asks for changes to a previous output, regenerate the three downloadable file sections again using the exact delimiter format.
-18. In Mode C, always include a brief "Cross-Reference Findings" section BEFORE the files, summarizing: (a) intents from the chatbot that are confirmed by real conversations, (b) intents from the chatbot NOT seen in real conversations, (c) new intents discovered from real conversations that the chatbot did not cover.`;
+18. In Mode C, always include a brief "Cross-Reference Findings" section BEFORE the files, summarizing: (a) intents from the chatbot that are confirmed by real conversations, (b) intents from the chatbot NOT seen in real conversations, (c) new intents discovered from real conversations that the chatbot did not cover.
+19. The data_source.txt must NEVER contain escalation logic, handover instructions, routing rules, or intent triggers. Only factual business knowledge belongs there. Escalation belongs exclusively in the config file under ESCALATION INTENTS.
+20. At the very end of every response, after the 3 files, add a single stats line in this exact format: [Stats: X messages analyzed · Y characters in response] — where X is the number of conversation messages used as input (0 if no messages were fetched) and Y is the total character count of the full response.`;
 
   if (!process.env.OPENAI_API_KEY) {
     return res.status(500).json({ error: 'OPENAI_API_KEY is not configured. Contact the admin.' });
