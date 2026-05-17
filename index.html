@@ -28,6 +28,7 @@
     #password-screen { width: 100%; max-width: 380px; padding: 2rem; text-align: center; }
     .logo { font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 0.2em; color: var(--accent); text-transform: uppercase; margin-bottom: 2.5rem; }
     .logo span { display: block; font-size: 22px; letter-spacing: 0.05em; color: var(--text); margin-top: 6px; font-weight: 500; }
+    .logo-img { width: 72px; height: 72px; border-radius: 16px; display: block; margin: 0 auto 12px; object-fit: cover; }
     #password-screen input { width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; color: var(--text); font-family: 'IBM Plex Mono', monospace; font-size: 14px; text-align: center; letter-spacing: 0.15em; outline: none; transition: border-color 0.2s; margin-bottom: 12px; }
     #password-screen input:focus { border-color: var(--accent); }
     #password-screen button { width: 100%; background: var(--accent); border: none; border-radius: 8px; padding: 12px; color: #fff; font-family: 'IBM Plex Sans', sans-serif; font-size: 14px; font-weight: 500; cursor: pointer; transition: opacity 0.2s; }
@@ -85,28 +86,21 @@
     #send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
     #send-btn svg { width: 18px; height: 18px; fill: #fff; }
 
-    /* ── WELCOME CARDS ─────────────────────────── */
+    /* WELCOME CARDS */
     .welcome-area { display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; padding: 2rem 1.5rem; gap: 1.5rem; }
     .welcome-title { font-size: 18px; font-weight: 500; color: var(--text); text-align: center; }
     .welcome-sub { font-size: 13px; color: var(--muted); text-align: center; margin-top: -8px; }
 
-    /* Top row: 3 cards side by side */
     .cards-row { display: flex; gap: 16px; width: 100%; justify-content: center; flex-wrap: wrap; }
-
-    /* Bottom merge card row */
     .cards-row-merge { display: flex; width: 100%; justify-content: center; position: relative; }
 
     .config-card {
       flex: 1; min-width: 180px; max-width: 220px;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 24px 18px 20px;
-      cursor: pointer;
+      background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+      padding: 24px 18px 20px; cursor: pointer;
       display: flex; flex-direction: column; align-items: center; gap: 12px;
       transition: border-color 0.2s, transform 0.15s, background 0.2s;
-      text-align: center;
-      position: relative;
+      text-align: center; position: relative;
     }
     .config-card:hover { border-color: var(--accent); background: #1c1b2a; transform: translateY(-2px); }
     .config-card.drag-over { border-color: var(--accent); background: #1c1b2a; border-style: dashed; }
@@ -115,7 +109,6 @@
     .card-desc { font-size: 12px; color: var(--muted); line-height: 1.55; }
     .card-hint { font-size: 11px; color: var(--accent); font-family: 'IBM Plex Mono', monospace; margin-top: 4px; }
 
-    /* biz-id inline inside card */
     .card-biz-form { display: none; flex-direction: column; gap: 8px; width: 100%; margin-top: 4px; }
     .card-biz-form.visible { display: flex; }
     .card-biz-form input { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 9px 12px; color: var(--text); font-family: 'IBM Plex Mono', monospace; font-size: 12px; outline: none; transition: border-color 0.2s; width: 100%; text-align: left; }
@@ -125,62 +118,24 @@
     .card-biz-form button:hover { opacity: 0.85; }
     .card-biz-form button:disabled { opacity: 0.4; cursor: not-allowed; }
 
-    /* ── MERGE CARD ─────────────────────────────── */
+    /* MERGE CARD */
     .merge-card {
       width: 100%; max-width: 680px;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 22px 24px 20px;
-      cursor: pointer;
+      background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+      padding: 22px 24px 20px; cursor: pointer;
       display: flex; flex-direction: column; align-items: center; gap: 10px;
       transition: border-color 0.3s, background 0.3s, box-shadow 0.3s;
-      text-align: center;
-      position: relative;
+      text-align: center; position: relative;
     }
-    .merge-card:hover {
-      border-color: var(--merge-glow);
-      background: #1c1a12;
-      box-shadow: 0 0 20px rgba(251,191,36,0.12);
-    }
+    .merge-card:hover { border-color: var(--merge-glow); background: #1c1a12; box-shadow: 0 0 20px rgba(251,191,36,0.12); }
 
-    /* arrows container — positioned above merge card */
-    .merge-arrows-wrap {
-      position: relative;
-      width: 100%;
-      max-width: 680px;
-      height: 36px;
-      pointer-events: none;
-    }
-    .merge-arrow {
-      position: absolute;
-      bottom: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 3px;
-      opacity: 0;
-      transition: opacity 0.3s, filter 0.3s;
-    }
-    /* left arrow points to card-file (leftish) */
+    .merge-arrows-wrap { position: relative; width: 100%; max-width: 680px; height: 36px; pointer-events: none; }
+    .merge-arrow { position: absolute; bottom: 0; display: flex; flex-direction: column; align-items: center; gap: 3px; opacity: 0; transition: opacity 0.3s, filter 0.3s; }
     .merge-arrow.left { left: 22%; }
-    /* right arrow points to card-biz (center-right) */
     .merge-arrow.right { right: 42%; }
-
     .merge-arrow svg { width: 18px; height: 18px; }
     .merge-arrow .arrow-line { width: 2px; height: 16px; background: var(--merge-glow); border-radius: 1px; }
-
-    /* glow state on hover */
-    .merge-card:hover ~ .merge-arrows-wrap .merge-arrow,
-    .cards-row-merge:hover .merge-arrow {
-      opacity: 1;
-      filter: drop-shadow(0 0 6px rgba(251,191,36,0.9));
-    }
-    /* since arrows are ABOVE card, we flip the hover trigger via JS class */
-    .merge-arrows-wrap.glowing .merge-arrow {
-      opacity: 1;
-      filter: drop-shadow(0 0 6px rgba(251,191,36,0.9));
-    }
+    .merge-arrows-wrap.glowing .merge-arrow { opacity: 1; filter: drop-shadow(0 0 6px rgba(251,191,36,0.9)); }
 
     .merge-card-body { display: flex; align-items: center; gap: 16px; width: 100%; justify-content: center; flex-wrap: wrap; }
     .merge-card-icon { font-size: 28px; }
@@ -189,7 +144,6 @@
     .merge-card-desc { font-size: 12px; color: var(--muted); line-height: 1.55; max-width: 420px; }
     .merge-card-hint { font-size: 11px; color: var(--merge-glow); font-family: 'IBM Plex Mono', monospace; margin-top: 2px; }
 
-    /* merge form — shown on click */
     .merge-form { display: none; flex-direction: row; gap: 12px; width: 100%; margin-top: 8px; align-items: flex-end; flex-wrap: wrap; }
     .merge-form.visible { display: flex; }
     .merge-form-group { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 180px; text-align: left; }
@@ -197,20 +151,10 @@
     .merge-form-group input[type="text"] { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 9px 12px; color: var(--text); font-family: 'IBM Plex Mono', monospace; font-size: 12px; outline: none; transition: border-color 0.2s; width: 100%; }
     .merge-form-group input[type="text"]:focus { border-color: var(--merge-glow); }
     .merge-form-group input[type="text"]::placeholder { color: var(--muted); }
-    .merge-file-label {
-      display: flex; align-items: center; gap: 8px;
-      background: var(--bg); border: 1px dashed var(--border); border-radius: 8px;
-      padding: 9px 12px; cursor: pointer; transition: border-color 0.2s;
-      font-size: 12px; color: var(--muted); font-family: 'IBM Plex Mono', monospace;
-    }
+    .merge-file-label { display: flex; align-items: center; gap: 8px; background: var(--bg); border: 1px dashed var(--border); border-radius: 8px; padding: 9px 12px; cursor: pointer; transition: border-color 0.2s; font-size: 12px; color: var(--muted); font-family: 'IBM Plex Mono', monospace; }
     .merge-file-label:hover { border-color: var(--merge-glow); color: var(--text); }
     .merge-file-label .merge-file-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 140px; }
-    .merge-submit-btn {
-      background: var(--merge-glow); border: none; border-radius: 8px;
-      padding: 10px 20px; color: #0e0e0f; font-size: 13px; font-weight: 500;
-      cursor: pointer; transition: opacity 0.2s; white-space: nowrap; align-self: flex-end;
-      font-family: 'IBM Plex Sans', sans-serif;
-    }
+    .merge-submit-btn { background: var(--merge-glow); border: none; border-radius: 8px; padding: 10px 20px; color: #0e0e0f; font-size: 13px; font-weight: 500; cursor: pointer; transition: opacity 0.2s; white-space: nowrap; align-self: flex-end; font-family: 'IBM Plex Sans', sans-serif; }
     .merge-submit-btn:hover { opacity: 0.85; }
     .merge-submit-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
@@ -254,7 +198,6 @@
     .modal-box iframe { width: 100%; height: 360px; border: none; border-radius: 10px; background: #000; }
     .modal-skip { display: block; text-align: center; margin-top: 12px; font-size: 12px; color: var(--muted); cursor: pointer; }
     .modal-skip:hover { color: var(--text); }
-
     .supported-files { font-size: 11px; color: var(--muted); text-align: center; margin-top: 4px; }
   </style>
 </head>
@@ -263,7 +206,14 @@
 <!-- PASSWORD SCREEN -->
 <div id="password-screen">
   <div class="logo">
-    <img src="data:image/jpeg;base64,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" alt="Azeer" style="width:72px;height:72px;border-radius:16px;display:block;margin:0 auto 12px;">
+    <!--
+      FIX: Logo is now a plain <img> tag referencing /logo.png (or /logo.jpg).
+      Place your logo file in the /public folder of your Vercel project.
+      This removes the giant inline base64 blob that was causing
+      Resource::kQuotaBytes quota exceeded errors in the browser.
+    -->
+    <img src="/logo.png" alt="Azeer" class="logo-img"
+         onerror="this.style.display='none'" />
     <span>Azeer Config Studio</span>
   </div>
   <input type="password" id="pw-input" placeholder="Enter access code" />
@@ -326,19 +276,31 @@
 </div>
 
 <script>
+  // ── FIX 1: Suppress quota errors from crashing the app ──────────────────────
+  // The base64 logo (now removed) was causing Resource::kQuotaBytes errors.
+  // This guard catches any residual storage errors from 3rd-party scripts.
+  window.addEventListener('error', function(e) {
+    if (e.message && (e.message.includes('QuotaExceeded') || e.message.includes('kQuotaBytes'))) {
+      e.preventDefault();
+      console.warn('Storage quota error suppressed:', e.message);
+    }
+  });
+  window.addEventListener('unhandledrejection', function(e) {
+    if (e.reason && String(e.reason).includes('QuotaExceeded')) {
+      e.preventDefault();
+      console.warn('Storage quota rejection suppressed:', e.reason);
+    }
+  });
+
   const VIDEO_URL = 'https://www.youtube.com/embed/NYGqPBeWTB4?vq=hd1080&rel=0';
-  const VIDEO_SEEN_KEY = 'azeer_config_video_seen';
   let videoSeen = false;
 
   let conversationHistory = [];
   let storedPassword = '';
   let pendingFile = null;
   let mergeFile = null;
-  let mergeBizId = '';
 
-  function getPassword() {
-    return storedPassword || '';
-  }
+  function getPassword() { return storedPassword || ''; }
 
   function checkPassword() {
     const pw = document.getElementById('pw-input').value;
@@ -380,7 +342,7 @@
     videoSeen = true;
   }
 
-  // ── WELCOME CARDS ────────────────────────────────────
+  // ── WELCOME CARDS ────────────────────────────────────────────────────────────
   function renderWelcome() {
     const messagesEl = document.getElementById('messages');
     messagesEl.innerHTML = `
@@ -388,10 +350,7 @@
         <div class="welcome-title">Choose how to generate your AI Agent config</div>
         <div class="welcome-sub">Pick a method below to get started</div>
 
-        <!-- Top row: 3 cards -->
         <div class="cards-row">
-
-          <!-- Card 1: Upload File -->
           <div class="config-card" id="card-file"
                onclick="triggerFileCard()"
                ondragover="cardDragOver(event,'card-file')"
@@ -404,7 +363,6 @@
             <input type="file" id="card-file-input" accept=".pdf,.docx,.json" style="display:none" onchange="handleFileSelect(event)" />
           </div>
 
-          <!-- Card 2: Business ID -->
           <div class="config-card" id="card-biz" onclick="toggleBizForm(event)">
             <div class="card-icon">🔍</div>
             <div class="card-title">Generate by Business ID</div>
@@ -416,25 +374,22 @@
             </div>
           </div>
 
-          <!-- Card 3: Write Description -->
           <div class="config-card" id="card-desc" onclick="focusDescription()">
             <div class="card-icon">✏️</div>
             <div class="card-title">Write a Description</div>
             <div class="card-desc">Describe the business — what they sell, how they talk to customers — and get a config built from scratch.</div>
             <div class="card-hint">Type in the box below</div>
           </div>
-
         </div>
 
-        <!-- Merge arrows (glow upward toward card-file and card-biz) -->
         <div class="merge-arrows-wrap" id="merge-arrows-wrap">
-          <div class="merge-arrow left" id="arrow-left">
+          <div class="merge-arrow left">
             <svg viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M9 14V4M9 4L4 9M9 4L14 9" stroke="#fbbf24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
             <div class="arrow-line"></div>
           </div>
-          <div class="merge-arrow right" id="arrow-right">
+          <div class="merge-arrow right">
             <svg viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M9 14V4M9 4L4 9M9 4L14 9" stroke="#fbbf24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
@@ -442,7 +397,6 @@
           </div>
         </div>
 
-        <!-- Merge card: full width below -->
         <div class="cards-row-merge">
           <div class="merge-card" id="merge-card"
                onmouseenter="glowArrows(true)"
@@ -457,11 +411,10 @@
               </div>
             </div>
 
-            <!-- Merge form (shown on click) -->
             <div class="merge-form" id="merge-form" onclick="event.stopPropagation()">
               <div class="merge-form-group">
                 <label>Business ID</label>
-                <input type="text" id="merge-biz-input" placeholder="e.g. 2c8a9a2d-04f8-49df-..." oninput="window.mergeBizId=this.value.trim()" onchange="window.mergeBizId=this.value.trim()" />
+                <input type="text" id="merge-biz-input" placeholder="e.g. 2c8a9a2d-04f8-49df-..." />
               </div>
               <div class="merge-form-group">
                 <label>Chatbot file (JSON · PDF · DOCX)</label>
@@ -475,20 +428,24 @@
             </div>
           </div>
         </div>
-
       </div>
     `;
   }
 
   function glowArrows(on) {
-    document.getElementById('merge-arrows-wrap').classList.toggle('glowing', on);
+    const el = document.getElementById('merge-arrows-wrap');
+    if (el) el.classList.toggle('glowing', on);
   }
 
   function toggleMergeForm(e) {
     const form = document.getElementById('merge-form');
+    if (!form) return;
     form.classList.toggle('visible');
     if (form.classList.contains('visible')) {
-      setTimeout(() => document.getElementById('merge-biz-input').focus(), 50);
+      setTimeout(() => {
+        const inp = document.getElementById('merge-biz-input');
+        if (inp) inp.focus();
+      }, 50);
     }
   }
 
@@ -496,33 +453,41 @@
     const file = e.target.files[0];
     if (!file) return;
     mergeFile = file;
-    document.getElementById('merge-file-name').textContent = file.name + ' (' + formatSize(file.size) + ')';
+    const nameEl = document.getElementById('merge-file-name');
+    if (nameEl) nameEl.textContent = file.name + ' (' + formatSize(file.size) + ')';
   }
 
+  // ── FIX 2: Capture biz ID and file BEFORE any DOM destruction ───────────────
+  // Previously, startMerge passed the bizId through runMerge but if the DOM
+  // was destroyed between the click and the read, getElementById returned null.
+  // Now we snapshot both values immediately on button click and pass explicitly.
   function startMerge() {
-    const input = document.getElementById('merge-biz-input');
-    const val = input ? input.value.trim() : '';
-    console.log('startMerge called, bizId:', val, 'file:', mergeFile ? mergeFile.name : 'none');
-    runMerge(val);
+    // Read values RIGHT NOW, before any DOM changes
+    const bizInput = document.getElementById('merge-biz-input');
+    const capturedBizId = bizInput ? bizInput.value.trim() : '';
+    const capturedFile = mergeFile; // snapshot the module-level ref
+
+    console.log('[startMerge] bizId:', JSON.stringify(capturedBizId), '| file:', capturedFile ? capturedFile.name : 'none');
+
+    if (!capturedBizId) { alert('Please enter a Business ID.'); return; }
+    if (!capturedFile) { alert('Please select a chatbot file.'); return; }
+
+    // Pass both captured values explicitly — don't rely on DOM or module state later
+    runMerge(capturedBizId, capturedFile);
   }
 
-  async function runMerge(bizIdParam) {
-    const bizId = (bizIdParam || '').trim();
-    const localMergeFile = mergeFile;
-
-    if (!bizId) { alert('Please enter a Business ID.'); return; }
-    if (!localMergeFile) { alert('Please select a chatbot file.'); return; }
+  // ── FIX 3: runMerge accepts explicit parameters ──────────────────────────────
+  async function runMerge(bizId, localMergeFile) {
+    // Both args are required — validated by startMerge before calling
     if (!getPassword()) { addMessage('ai', '❌ Session expired — please refresh and log in again.'); return; }
 
-    // Safe to destroy welcome DOM now
+    // Safe to destroy welcome DOM now — values already captured above
     removeWelcome();
     addMessage('user', '⚡ Deep Config: Business ID ' + bizId + ' + ' + localMergeFile.name);
     showTyping();
 
     try {
       // Step 1: fetch messages
-      console.log('DEBUG bizId:', JSON.stringify(bizId), 'len:', bizId.length);
-      console.log('DEBUG password:', getPassword() ? 'set' : 'EMPTY');
       const fetchRes = await fetch('/api/fetch-messages', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -554,7 +519,7 @@
         return;
       }
 
-      // Step 3: build merged prompt
+      // Step 3: build merged prompt and call Claude
       const prompt =
         'MODE C — DEEP CONFIG: Chatbot File + Conversation History\n\n' +
         'Business ID: ' + bizId + '\n\n' +
@@ -582,11 +547,11 @@
       addMessage('ai', '❌ Error: ' + err.message);
     }
 
+    // Clear state only after we're done with the values
     mergeFile = null;
-    window.mergeBizId = '';
   }
 
-
+  // ── OTHER CARD HANDLERS ──────────────────────────────────────────────────────
   function triggerFileCard() { document.getElementById('card-file-input').click(); }
 
   function toggleBizForm(e) {
@@ -608,14 +573,19 @@
   }
 
   async function cardFetchBizId() {
-    const bizId = document.getElementById('card-biz-input').value.trim();
+    // FIX: Capture biz ID immediately before any async/DOM work
+    const bizInput = document.getElementById('card-biz-input');
+    const bizId = bizInput ? bizInput.value.trim() : '';
     if (!bizId) return;
     if (!getPassword()) { addMessage('ai', '❌ Session expired — please refresh and log in again.'); return; }
+
     const btn = document.getElementById('card-biz-btn');
-    btn.disabled = true; btn.textContent = 'Fetching...';
+    if (btn) { btn.disabled = true; btn.textContent = 'Fetching...'; }
+
     removeWelcome();
     addMessage('user', 'Business ID: ' + bizId);
     showTyping();
+
     try {
       const fetchRes = await fetch('/api/fetch-messages', {
         method: 'POST',
@@ -625,8 +595,7 @@
       const fetchData = await fetchRes.json();
       if (fetchData.error) {
         removeTyping();
-        addMessage('ai', 'Error fetching messages: ' + fetchData.error);
-        btn.disabled = false; btn.textContent = 'Fetch & Generate';
+        addMessage('ai', '❌ Error fetching messages: ' + fetchData.error);
         return;
       }
       const prompt = 'Business ID: ' + bizId + '\n\nI have fetched the last ' + fetchData.message_count + ' WhatsApp messages for this business. Please analyze these conversations and generate a complete AI Agent configuration including all 3 output files.\n\nMESSAGES:\n' + fetchData.formatted_messages;
@@ -638,15 +607,15 @@
       });
       const chatData = await chatRes.json();
       removeTyping();
-      if (chatData.error) { addMessage('ai', 'Error: ' + chatData.error); }
+      if (chatData.error) { addMessage('ai', '❌ ' + chatData.error); }
       else { addMessage('ai', chatData.content); conversationHistory.push({ role: 'assistant', content: chatData.content }); }
     } catch(err) {
       removeTyping();
-      addMessage('ai', 'Connection error: ' + err.message);
+      addMessage('ai', '❌ Connection error: ' + err.message);
     }
   }
 
-  // ── FILE HELPERS ──────────────────────────────────────
+  // ── FILE HELPERS ─────────────────────────────────────────────────────────────
   function getFileIcon(name) {
     if (name.endsWith('.pdf')) return '📕';
     if (name.endsWith('.docx')) return '📘';
@@ -675,7 +644,7 @@
   }
   function removeFile() {
     pendingFile = null;
-    ['file-input','card-file-input'].forEach(id => { const el = document.getElementById(id); if(el) el.value=''; });
+    ['file-input', 'card-file-input'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
     document.getElementById('file-preview').classList.remove('visible');
   }
   function readFileAsText(file) {
@@ -687,7 +656,7 @@
     });
   }
 
-  // ── MESSAGES ──────────────────────────────────────────
+  // ── MESSAGES ─────────────────────────────────────────────────────────────────
   function removeWelcome() { const wa = document.getElementById('welcome-area'); if (wa) wa.remove(); }
 
   function addMessage(role, content) {
@@ -747,7 +716,7 @@
   }
   function removeTyping() { const el = document.getElementById('typing-indicator'); if (el) el.remove(); }
 
-  // ── SEND ──────────────────────────────────────────────
+  // ── SEND ─────────────────────────────────────────────────────────────────────
   function autoResize(el) { el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight, 140) + 'px'; }
   function handleKey(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }
 
@@ -766,9 +735,9 @@
         const fileText = await readFileAsText(pendingFile);
         let fileContent = '';
         if (pendingFile.name.endsWith('.json')) {
-          try { const parsed = JSON.parse(fileText); const compact = JSON.stringify(parsed); fileContent = compact.length > 60000 ? compact.slice(0,60000)+'\n\n[truncated]' : compact; }
-          catch(e) { fileContent = fileText.slice(0,60000); }
-        } else { fileContent = fileText.slice(0,60000); }
+          try { const parsed = JSON.parse(fileText); const compact = JSON.stringify(parsed); fileContent = compact.length > 60000 ? compact.slice(0, 60000) + '\n\n[truncated]' : compact; }
+          catch(e) { fileContent = fileText.slice(0, 60000); }
+        } else { fileContent = fileText.slice(0, 60000); }
         userContent = 'File: ' + pendingFile.name + '\n\n' + fileContent + (text ? '\n\nUser note: ' + text : '\n\nPlease analyze this file and generate a complete AI Agent configuration.');
       } catch(e) {
         removeTyping(); addMessage('ai', '❌ Could not read file: ' + e.message);
@@ -790,7 +759,7 @@
           signal: controller.signal
         });
       } finally { clearTimeout(timeout); }
-      if (!res.ok) { const errText = await res.text().catch(() => 'Unknown error'); removeTyping(); addMessage('ai', '❌ Server error ' + res.status + ': ' + errText.slice(0,300)); document.getElementById('send-btn').disabled = false; return; }
+      if (!res.ok) { const errText = await res.text().catch(() => 'Unknown error'); removeTyping(); addMessage('ai', '❌ Server error ' + res.status + ': ' + errText.slice(0, 300)); document.getElementById('send-btn').disabled = false; return; }
       const data = await res.json();
       removeTyping();
       if (data.error) { addMessage('ai', '❌ ' + data.error); }
@@ -807,7 +776,7 @@
   function resetConversation() {
     conversationHistory = []; pendingFile = null; mergeFile = null;
     removeTyping();
-    ['file-input'].forEach(id => { const el = document.getElementById(id); if(el) el.value=''; });
+    ['file-input'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
     document.getElementById('file-preview').classList.remove('visible');
     const ui = document.getElementById('user-input');
     ui.value = ''; ui.style.height = 'auto';
@@ -815,7 +784,7 @@
     renderWelcome(); ui.focus();
   }
 
-  // ── DOWNLOAD HELPERS ──────────────────────────────────
+  // ── DOWNLOAD HELPERS ─────────────────────────────────────────────────────────
   function extractFiles(content) {
     const files = []; const seen = new Set(); let m;
     const re1 = /---+[ \t]*([\w][\w._-]*\.txt)[ \t]*---+[ \t]*\n([\s\S]*?)(?=---+[ \t]*[\w][\w._-]*\.txt[ \t]*---+|$)/gi;
