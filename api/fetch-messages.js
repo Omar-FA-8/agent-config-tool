@@ -19,10 +19,17 @@ export default async function handler(req, res) {
 
   const HASURA_URL = 'https://graphql.mottasl.ai/v1/graphql';
 
-  // Single-batch fetch — one query, no looping, avoids Vercel timeout
-  const LIMIT = Number(process.env.HASURA_FETCH_LIMIT || 150);
-  const MAX_UNIQUE_MESSAGES = Number(process.env.HASURA_MAX_UNIQUE_MESSAGES || 100);
-  const HASURA_REQUEST_TIMEOUT_MS = Number(process.env.HASURA_REQUEST_TIMEOUT_MS || 8000);
+  // Batched with graceful degradation:
+  // - Fetch in small batches with a tight per-batch timeout
+  // - If a batch times out or fails, stop and use whatever we have so far
+  const BATCH_SIZE = Number(process.env.HASURA_FETCH_BATCH_SIZE || 100);
+  const MAX_BATCHES = Number(process.env.HASURA_MAX_BATCHES || 5); // max 500 messages total
+  const MAX_UNIQUE_MESSAGES = Number(process.env.HASURA_MAX_UNIQUE_MESSAGES || 500);
+  const BATCH_TIMEOUT_MS = Number(process.env.HASURA_BATCH_TIMEOUT_MS || 7000); // 7s per batch
+
+  // Date filter — only last N days to reduce scan size
+  const DAYS_BACK = Number(process.env.HASURA_DAYS_BACK || 30);
+  const since = new Date(Date.now() - DAYS_BACK * 24 * 60 * 60 * 1000).toISOString();
 
   function normalizeDirection(direction) {
     if (!direction) return '';
@@ -61,71 +68,113 @@ export default async function handler(req, res) {
     return null;
   }
 
-  const query = `
-    query GetMessages($business_id: uuid!, $limit: Int!) {
-      core_message(
-        where: { business_id: { _eq: $business_id } }
-        order_by: { created_at: desc }
-        limit: $limit
-      ) {
-        id
-        direction
-        body
-        created_at
+  async function fetchBatch(offset) {
+    const query = `
+      query GetMessages($business_id: uuid!, $limit: Int!, $offset: Int!, $since: timestamptz!) {
+        core_message(
+          where: {
+            business_id: { _eq: $business_id }
+            created_at: { _gte: $since }
+          }
+          order_by: { created_at: desc }
+          limit: $limit
+          offset: $offset
+        ) {
+          id
+          direction
+          body
+          created_at
+        }
       }
-    }
-  `;
+    `;
 
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), HASURA_REQUEST_TIMEOUT_MS);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), BATCH_TIMEOUT_MS);
 
-  let rawMessages = [];
-
-  try {
-    const response = await fetch(HASURA_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-hasura-admin-secret': process.env.HASURA_SECRET
-      },
-      body: JSON.stringify({
-        query,
-        variables: { business_id: business_id.trim(), limit: LIMIT }
-      }),
-      signal: controller.signal
-    });
-
-    const text = await response.text();
-    let data;
     try {
-      data = JSON.parse(text);
-    } catch (e) {
-      return res.status(500).json({ error: 'Hasura returned non-JSON response.' });
-    }
+      const response = await fetch(HASURA_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-hasura-admin-secret': process.env.HASURA_SECRET
+        },
+        body: JSON.stringify({
+          query,
+          variables: {
+            business_id: business_id.trim(),
+            limit: BATCH_SIZE,
+            offset,
+            since
+          }
+        }),
+        signal: controller.signal
+      });
 
-    if (!response.ok || data.errors) {
-      const msg = data.errors?.[0]?.message || data.error || `HTTP ${response.status}`;
-      return res.status(500).json({ error: 'Hasura error: ' + msg });
-    }
+      const text = await response.text();
+      let data;
+      try { data = JSON.parse(text); }
+      catch (e) { throw new Error('Hasura returned non-JSON response.'); }
 
-    rawMessages = data.data?.core_message || [];
-  } catch (err) {
-    if (err.name === 'AbortError') {
-      return res.status(504).json({ error: `Hasura request timed out after ${HASURA_REQUEST_TIMEOUT_MS / 1000} seconds. Try a different Business ID or contact support.` });
+      if (!response.ok || data.errors) {
+        const msg = data.errors?.[0]?.message || `HTTP ${response.status}`;
+        throw new Error(msg);
+      }
+
+      return { success: true, messages: data.data?.core_message || [] };
+    } catch (err) {
+      if (err.name === 'AbortError') {
+        return { success: false, timedOut: true, messages: [] };
+      }
+      return { success: false, error: err.message, messages: [] };
+    } finally {
+      clearTimeout(timeout);
     }
-    return res.status(500).json({ error: 'Failed to fetch messages: ' + err.message });
-  } finally {
-    clearTimeout(timeout);
   }
 
+  // Fetch batches — stop gracefully on timeout or empty batch
+  const rawMessages = [];
+  let stoppedEarly = false;
+  let batchesFetched = 0;
+
+  for (let i = 0; i < MAX_BATCHES; i++) {
+    const offset = i * BATCH_SIZE;
+    const result = await fetchBatch(offset);
+    batchesFetched++;
+
+    if (!result.success) {
+      // Timed out or errored — stop and use what we have
+      stoppedEarly = true;
+      break;
+    }
+
+    if (!result.messages.length) {
+      // No more messages
+      break;
+    }
+
+    rawMessages.push(...result.messages);
+
+    if (result.messages.length < BATCH_SIZE) {
+      // Last batch had fewer than requested — no more to fetch
+      break;
+    }
+  }
+
+  // If we got nothing at all, return error
   if (!rawMessages.length) {
-    return res.status(404).json({ error: 'No messages found for this Business ID.' });
+    return res.status(404).json({
+      error: stoppedEarly
+        ? `Could not fetch messages — Hasura is too slow for this merchant. Try again or contact support to add a DB index.`
+        : 'No messages found for this Business ID in the last ' + DAYS_BACK + ' days.'
+    });
   }
 
   const usefulMessages = rawMessages.filter(isUsefulMessage);
 
   if (!usefulMessages.length) {
-    return res.status(404).json({ error: 'Messages found but no useful customer/agent messages after filtering.' });
+    return res.status(404).json({
+      error: 'Messages found but no useful customer/agent messages after filtering.'
+    });
   }
 
   const formatted = usefulMessages
@@ -162,6 +211,8 @@ export default async function handler(req, res) {
     message_count: rawMessages.length,
     filtered_message_count: usefulMessages.length,
     unique_count: deduped.length,
+    batches_fetched: batchesFetched,
+    stopped_early: stoppedEarly,
     formatted_messages: deduped.join('\n')
   });
 }
