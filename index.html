@@ -499,7 +499,7 @@
   }
 
   async function runMerge() {
-    // Read values BEFORE removeWelcome() destroys the DOM elements
+    // Read ALL values from DOM FIRST before anything else
     const bizId = document.getElementById('merge-biz-input').value.trim();
     const localMergeFile = mergeFile;
 
@@ -507,13 +507,10 @@
     if (!localMergeFile) { alert('Please select a chatbot file.'); return; }
     if (!getPassword()) { addMessage('ai', '❌ Session expired — please refresh and log in again.'); return; }
 
-    // Now safe to destroy the welcome DOM
+    // Safe to destroy welcome DOM now
     removeWelcome();
     addMessage('user', '⚡ Deep Config: Business ID ' + bizId + ' + ' + localMergeFile.name);
     showTyping();
-
-    // btn no longer in DOM after removeWelcome — use a local status tracker
-    let btnEl = null;
 
     try {
       // Step 1: fetch messages
@@ -528,8 +525,6 @@
         addMessage('ai', '❌ Error fetching messages: ' + fetchData.error);
         return;
       }
-
-      btn.textContent = 'Reading file…';
 
       // Step 2: read file
       let fileContent = '';
@@ -549,8 +544,6 @@
         addMessage('ai', '❌ Could not read file: ' + e.message);
         return;
       }
-
-
 
       // Step 3: build merged prompt
       const prompt =
@@ -582,6 +575,7 @@
 
     mergeFile = null;
   }
+
 
   function triggerFileCard() { document.getElementById('card-file-input').click(); }
 
