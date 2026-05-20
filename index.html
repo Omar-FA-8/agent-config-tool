@@ -222,48 +222,16 @@
     .modal-skip:hover { color: var(--text); }
     .supported-files { font-size: 11px; color: var(--muted); text-align: center; margin-top: 4px; }
 
-    /* THEME SLIDER */
+    /* THEME TOGGLE */
     body { transition: background 0.25s, color 0.25s; }
-    .theme-slider {
-      position: fixed; top: 14px; right: 16px; z-index: 500;
-      width: 72px; height: 32px;
-      background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
-      cursor: ew-resize; user-select: none; touch-action: none;
-      transition: background 0.25s, border-color 0.2s;
-    }
-    .theme-slider:hover { border-color: var(--accent); }
-    .ts-icons {
-      position: absolute; inset: 0;
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 0 9px; pointer-events: none;
-    }
-    .ts-icons svg { width: 13px; height: 13px; fill: none; stroke: var(--muted); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; transition: stroke 0.25s; }
-    [data-theme="light"] .ts-icons .ts-sun { stroke: var(--accent); }
-    [data-theme="dark"]  .ts-icons .ts-moon { stroke: var(--accent); }
-    .theme-thumb {
-      position: absolute; top: 4px; left: 4px;
-      width: 22px; height: 22px; border-radius: 50%;
-      background: var(--accent);
-      box-shadow: 0 1px 4px rgba(0,0,0,0.35);
-      transition: left 0.22s cubic-bezier(0.34,1.56,0.64,1), background 0.25s;
-      cursor: grab;
-    }
-    .theme-thumb:active { cursor: grabbing; }
-    [data-theme="light"] .theme-thumb { left: 44px; }
+    .theme-toggle { position: fixed; top: 14px; right: 16px; z-index: 500; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 18px; line-height: 1; transition: border-color 0.2s, background 0.25s; }
+    .theme-toggle:hover { border-color: var(--accent); }
   </style>
 </head>
 <body>
 
-<!-- THEME SLIDER (always visible) -->
-<div class="theme-slider" id="theme-slider" title="Drag to switch day / night">
-  <div class="ts-icons">
-    <!-- moon = dark mode (left) -->
-    <svg class="ts-moon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-    <!-- sun = light mode (right) -->
-    <svg class="ts-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="4.22" y1="4.22" x2="6.34" y2="6.34"/><line x1="17.66" y1="17.66" x2="19.78" y2="19.78"/><line x1="2" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="22" y2="12"/><line x1="4.22" y1="19.78" x2="6.34" y2="17.66"/><line x1="17.66" y1="6.34" x2="19.78" y2="4.22"/></svg>
-  </div>
-  <div class="theme-thumb" id="theme-thumb"></div>
-</div>
+<!-- THEME TOGGLE (always visible) -->
+<button class="theme-toggle" id="theme-toggle" onclick="toggleTheme()" title="Switch theme"></button>
 
 <!-- PASSWORD SCREEN -->
 <div id="password-screen">
@@ -341,80 +309,20 @@
 </div>
 
 <script>
-  // ── THEME SLIDER ─────────────────────────────────────────────────────────────
-  // Track inner width = 72-2 = 70px. Thumb = 22px. Padding = 4px each side.
-  // Dark  → thumb left = 4px
-  // Light → thumb left = 70 - 4 - 22 = 44px
-  const THUMB_DARK  = 4;
-  const THUMB_LIGHT = 44;
-  const THUMB_MID   = (THUMB_DARK + THUMB_LIGHT) / 2; // 24
-
+  // ── THEME ────────────────────────────────────────────────────────────────────
   function applyTheme(theme) {
     document.documentElement.setAttribute('data-theme', theme);
+    const btn = document.getElementById('theme-toggle');
+    // In dark mode show ☀️ (click → go light). In light mode show 🌙 (click → go dark).
+    if (btn) btn.textContent = theme === 'dark' ? '☀️' : '🌙';
   }
 
-  function setTheme(theme) {
-    localStorage.setItem('theme', theme);
-    applyTheme(theme);
+  function toggleTheme() {
+    const current = document.documentElement.getAttribute('data-theme') || 'dark';
+    const next = current === 'dark' ? 'light' : 'dark';
+    localStorage.setItem('theme', next);
+    applyTheme(next);
   }
-
-  // Drag state
-  let _dragActive = false, _dragStartX = 0, _dragStartLeft = 0, _dragMoved = false;
-
-  function _thumbLeft() {
-    const t = document.documentElement.getAttribute('data-theme') || 'dark';
-    return t === 'light' ? THUMB_LIGHT : THUMB_DARK;
-  }
-
-  function _onDragStart(e) {
-    _dragActive = true; _dragMoved = false;
-    _dragStartX    = e.type === 'touchstart' ? e.touches[0].clientX : e.clientX;
-    _dragStartLeft = _thumbLeft();
-    const thumb = document.getElementById('theme-thumb');
-    if (thumb) { thumb.style.transition = 'none'; thumb.style.left = _dragStartLeft + 'px'; }
-    e.preventDefault();
-  }
-
-  function _onDragMove(e) {
-    if (!_dragActive) return;
-    const x = e.type === 'touchmove' ? e.touches[0].clientX : e.clientX;
-    const delta = x - _dragStartX;
-    if (Math.abs(delta) > 3) _dragMoved = true;
-    const clamped = Math.max(THUMB_DARK, Math.min(THUMB_LIGHT, _dragStartLeft + delta));
-    const thumb = document.getElementById('theme-thumb');
-    if (thumb) thumb.style.left = clamped + 'px';
-    e.preventDefault();
-  }
-
-  function _onDragEnd(e) {
-    if (!_dragActive) return;
-    _dragActive = false;
-    const thumb = document.getElementById('theme-thumb');
-    if (!thumb) return;
-    const cur = parseFloat(thumb.style.left);
-    thumb.style.transition = ''; // restore CSS transition
-    thumb.style.left = '';       // let CSS (data-theme) drive position
-
-    if (!_dragMoved) {
-      // treat as click — toggle
-      const t = document.documentElement.getAttribute('data-theme') || 'dark';
-      setTheme(t === 'dark' ? 'light' : 'dark');
-    } else {
-      setTheme(cur >= THUMB_MID ? 'light' : 'dark');
-    }
-  }
-
-  // Wire up slider once DOM is ready
-  document.addEventListener('DOMContentLoaded', function() {
-    const thumb = document.getElementById('theme-thumb');
-    if (!thumb) return;
-    thumb.addEventListener('mousedown',  _onDragStart);
-    thumb.addEventListener('touchstart', _onDragStart, { passive: false });
-    document.addEventListener('mousemove',  _onDragMove);
-    document.addEventListener('touchmove',  _onDragMove, { passive: false });
-    document.addEventListener('mouseup',    _onDragEnd);
-    document.addEventListener('touchend',   _onDragEnd);
-  });
 
   // Apply saved theme immediately (before paint)
   applyTheme(localStorage.getItem('theme') || 'dark');
